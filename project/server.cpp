@@ -1,6 +1,6 @@
 #include "server.h"
 
-#define BUFFER_SIZE 8192
+#define BUFFER_SIZE 65536
 #define MAX_CONNECTIONS 10
 #define DEFAULT_PORT 5152
 
