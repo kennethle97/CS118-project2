@@ -57,7 +57,7 @@ class Server {
     char* process_packet(char* packet);
 
     void run_server();
-    void establish_TCP_Connection(char* packet, uint32_t destIP, uint16_t destPort);
+    void establish_TCP_Connection(char* packet, uint32_t destIP, uint16_t destPort,uint16_t num_bytes);
     void process_client_socket(int client_socket);
 
 

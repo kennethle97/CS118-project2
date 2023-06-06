@@ -1,6 +1,6 @@
 #include "server.h"
 
-#define BUFFER_SIZE 8192
+#define BUFFER_SIZE 65536
 #define MAX_CONNECTIONS 10
 #define DEFAULT_PORT 5152
 
@@ -544,7 +544,7 @@ void Server::parse_config(std::string config){
     std::string LanIp = line.substr(0, dwPos);
     std::string WanIp = line.substr(dwPos + 1);
 
-    std::cout << "Server's LAN IP: " << LanIp << std::endl
+    std::cout << "Server's LAN IP: " << LanIp << std::endl;
                 << "Server's WAN IP: " << WanIp << std::endl;
 
     wan_ip = WanIp;
@@ -573,7 +573,7 @@ void Server::parse_config(std::string config){
         
         auto port_pair = std::make_pair(lan_port,wan_port);
         if(port_map.find(ip_address) == port_map.end()){
-            std::cerr << "Error, specified port pairing for ip address not defined in LAN: " << ip_address <<std::endl;
+            std::cerr << "Error, specified port pairing for ip address not defined in LAN: " << ip_address <<std::endl;                                                                  
             //return;
         }
         port_map[ip_address] = port_pair;
@@ -813,7 +813,7 @@ void Server::run_server(){
 }
 
 
-void Server::establish_TCP_Connection(char* packet, uint32_t destIP, uint16_t destPort) {
+void Server::establish_TCP_Connection(char* packet, uint32_t destIP, uint16_t destPort,uint16_t num_bytes) {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
         perror("socket");
@@ -823,7 +823,7 @@ void Server::establish_TCP_Connection(char* packet, uint32_t destIP, uint16_t de
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(destPort);
-    server_addr.sin_addr.s_addr = destIP;
+    server_addr.sin_addr.s_addr = htonl(destIP);
 
     if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
         perror("connect");
@@ -832,7 +832,7 @@ void Server::establish_TCP_Connection(char* packet, uint32_t destIP, uint16_t de
     }
 
     // Connection established, send the payload packet
-    if (send(sockfd, packet, strlen(packet), 0) == -1) {
+    if (send(sockfd, packet, num_bytes, 0) == -1) {
         perror("send");
     }
 
@@ -846,7 +846,7 @@ void Server::process_client_socket(int client_socket){
     memset(buffer,0,BUFFER_SIZE);
     //need to test to see if the null terminating string affects the number of bytes recieved.
     int number_bytes = recv(client_socket, buffer, BUFFER_SIZE,0);
-    buffer[number_bytes] = '\0';
+    // buffer[number_bytes] = '\0';
 
     printf("Client %d: %s\n", client_socket, buffer);
     char* packet = buffer;
@@ -857,7 +857,7 @@ void Server::process_client_socket(int client_socket){
 
         uint32_t destination_ip = addr_block.dest_ip;
         uint16_t destination_port = addr_block.dest_port;
-        establish_TCP_Connection(packet,destination_ip,destination_port);
+        establish_TCP_Connection(packet,destination_ip,destination_port,number_bytes);
     }
     //if the packet was a nullptr or the TTL is <= 0 we just close the connection and drop the packet
     else{
