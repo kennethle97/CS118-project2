@@ -544,7 +544,7 @@ void Server::parse_config(std::string config){
     std::string LanIp = line.substr(0, dwPos);
     std::string WanIp = line.substr(dwPos + 1);
 
-    std::cout << "Server's LAN IP: " << LanIp << std::endl;
+    std::cout << "Server's LAN IP: " << LanIp << std::endl
                 << "Server's WAN IP: " << WanIp << std::endl;
 
     wan_ip = WanIp;
@@ -573,7 +573,7 @@ void Server::parse_config(std::string config){
         
         auto port_pair = std::make_pair(lan_port,wan_port);
         if(port_map.find(ip_address) == port_map.end()){
-            std::cerr << "Error, specified port pairing for ip address not defined in LAN: " << ip_address <<std::endl;                                                                  
+            std::cerr << "Error, specified port pairing for ip address not defined in LAN: " << ip_address <<std::endl;
             //return;
         }
         port_map[ip_address] = port_pair;
