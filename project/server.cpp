@@ -116,12 +116,10 @@ Server::TCP_Packet Server::get_tcp_packet(IP_Packet ip_header,char* packet) {
 
     const uint8_t* buffer = reinterpret_cast<const uint8_t*>(packet);
     int offset = ipv4_header_length * 4;
-    std::cout<<"offset: "<<offset<<'\n';
 
     TCP_Packet tcp_packet;
     const uint8_t* tcp_packet_buffer = buffer + offset;
-    uint16_t source_port = ((tcp_packet_buffer[0] << 8) | tcp_packet_buffer[1]);
-    std::cout<<"source port: " << source_port <<'\n';
+
     // Create a TCP_Packet struct and populate its fields from the buffer
 
     tcp_packet.source_port = (tcp_packet_buffer[0] << 8) | tcp_packet_buffer[1];
@@ -240,11 +238,10 @@ std::pair<uint16_t,uint16_t> Server::calc_new_checksum(IP_Packet ip_header, char
         transport_checksum += calculate_checksum(&tcp_copy.source_port, sizeof(tcp_copy) - sizeof(tcp_copy.options_and_data) - 4, 0);
 
         if(tcp_copy.options_and_data != nullptr){
-            std::cout<<"length tcp data: "<<transport_length - 20<<'\n';
+    
             transport_checksum += calculate_checksum(tcp_copy.options_and_data, transport_length - 20, 1);
         }
 
-        std::cout << "checkpoint4" << '\n';
         //If ip_copy_sum ends up being greater than 16 bits after adding two calll to calculate_checksum twice then we carry the bits over again.
         transport_checksum = (transport_checksum & 0xFFFF) + (transport_checksum >> 16);
         
@@ -260,10 +257,6 @@ std::pair<uint16_t,uint16_t> Server::calc_new_checksum(IP_Packet ip_header, char
         UDP_Packet udp_copy = get_udp_packet(ip_header,packet);
         current_checksum = udp_copy.checksum;
         udp_copy.checksum = 0;
-        std::cout<<"size udp: " << sizeof(udp_copy)<< '\n';
-        std::cout<<"size ip_header: " << sizeof(ip_header)<< '\n';
-        std::cout<<"size udp: " << sizeof(udp_copy.data)<< '\n';
-    
 
         transport_checksum += calculate_checksum(&udp_copy, sizeof(udp_copy) - sizeof(udp_copy.data), 0);
         
@@ -352,11 +345,10 @@ bool Server::valid_checksum(IP_Packet ip_header, char* packet){
         transport_checksum += calculate_checksum(&tcp_copy.source_port, sizeof(tcp_copy) - sizeof(tcp_copy.options_and_data) - 4, 0);
 
         if(tcp_copy.options_and_data != nullptr){
-            std::cout<<"length tcp data: "<<transport_length - 20<<'\n';
+
             transport_checksum += calculate_checksum(tcp_copy.options_and_data, transport_length - 20, 1);
         }
 
-        std::cout << "checkpoint4" << '\n';
         //If ip_copy_sum ends up being greater than 16 bits after adding two calll to calculate_checksum twice then we carry the bits over again.
         transport_checksum = (transport_checksum & 0xFFFF) + (transport_checksum >> 16);
         
@@ -372,9 +364,6 @@ bool Server::valid_checksum(IP_Packet ip_header, char* packet){
         UDP_Packet udp_copy = get_udp_packet(ip_header,packet);
         current_checksum = udp_copy.checksum;
         udp_copy.checksum = 0;
-        std::cout<<"size udp: " << sizeof(udp_copy)<< '\n';
-        std::cout<<"size ip_header: " << sizeof(ip_header)<< '\n';
-        std::cout<<"size udp: " << sizeof(udp_copy.data)<< '\n';
     
 
         transport_checksum += calculate_checksum(&udp_copy, sizeof(udp_copy) - sizeof(udp_copy.data), 0);
@@ -553,32 +542,54 @@ char* Server::process_packet(char* buffer){
 
     if(!valid_checksum(ip_header,packet)){
             return nullptr;
-        }
+    }
 
     //if the source ip is the wan ip then we are forwarding a messaage from the internet to someone in the lan.
     if(dest_ip == wan_ip_bin){
+        bool port_match_found = false;
         for (auto it = port_map.begin(); it != port_map.end(); ++it) {
             //if the dest port is equal to any wan port dictated in the list of port mappings then we can forward the packet.
-            if(dest_port == it->second.second){
-                //We set the source ip to be the same and set the destination of the packet to be the port mapped one.
-                new_source_ip = source_ip;
-                new_dest_ip = convert_ip_to_binary(it->first);
-                new_source_port = source_port;
-                new_dest_port = it->second.first;
+            if(it == port_map.find(wan_ip)){
+                continue;
+            }
+            auto& array_port_pair = it->second;
+            int size = array_port_pair.size();
+            for(int i = 0; i < size; i++){
+                if(dest_port == array_port_pair[i].second){
+                    //We set the source ip to be the same and set the destination of the packet to be the port mapped one.
+                    new_source_ip = source_ip;
+                    new_dest_ip = convert_ip_to_binary(it->first);
+                    new_source_port = source_port;
+                    new_dest_port = array_port_pair[i].first;
 
-                // if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
-                //     //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
-                //     return nullptr;
-                //}
+                    port_match_found = true;
+
+                    if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
+                        //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
+                        return nullptr;
+                    }
+                    break;
+                    }
+            }
+            if(port_match_found){
                 break;
             }
         // std::cout << "LAN IP: " << it->first << "\nLAN Port: " << it->second.first << " WAN Port: " << it->second.second << std::endl;
+        }
+        if(!port_match_found){
+            //We make a place holder for wan_ip in the map.
+            port_map[convert_uint32_to_ip(source_ip)].push_back(std::make_pair(source_port,dest_port));
+            return nullptr;
         }
     }
 
     //Handle LAN traffic here
     else if((source_ip & lan_subnet_mask) == (lan_ip_bin & lan_subnet_mask) && (dest_ip & lan_subnet_mask) == (lan_ip_bin & lan_subnet_mask)){
         //Honestly we do nothing and just forward the packet as is to the LAN ip address with no changes, only to the time to live and header checksums.
+        if(check_excluded_ip_address(source_ip,dest_ip,source_port,dest_port)){
+                    //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
+                    return nullptr;
+            }
         std::cout<<"Forwarding between lan Ips"<<std::endl;
         packet = change_packet_vals(packet,htonl(source_ip),htonl(dest_ip),htons(source_port),htons(dest_port));
         return packet;
@@ -586,19 +597,43 @@ char* Server::process_packet(char* buffer){
     //Handle packets being forwarded from the lan to the internet
     else if((source_ip & lan_subnet_mask )== (lan_ip_bin & lan_subnet_mask))
     {
+        //Check the wan_ip entry to see if any ip address from the lan is trying to connect to a previous port sent to wan ip before.
+        auto it = port_map.find(convert_uint32_to_ip(dest_ip));
+        if(it != port_map.end()){
+            auto& array_port_pair = it->second;
+            int size_vector = (array_port_pair).size(); 
+            for(int i = 0; i < size_vector; i++){
+                if(dest_port == array_port_pair[i].first){
+                    auto lan_it = port_map.find(convert_uint32_to_ip(source_ip));
+                    lan_it->second.push_back(std::make_pair(source_port,array_port_pair[i].second));
+                    array_port_pair.push_back(std::make_pair(dest_port+1,array_port_pair[i].second+1));
+                    array_port_pair.erase(array_port_pair.begin() + i);
+                    break;
+                }
+            }
+        }
+        bool match = false;
         for (auto it = port_map.begin(); it != port_map.end(); ++it) {
             //if any the source_ip is any ip address in the lan  and the source port is also the same as the lan port mapping then we change the values.
-            if(source_ip == convert_ip_to_binary(it->first) && source_port == it->second.first){
-                //We set the source ip to be the wan ip and the destination ip remains the same. also the new source port is now the corresponding port map from the wan side
-                new_source_ip = wan_ip_bin;
-                new_dest_ip = dest_ip;
-                new_source_port = it->second.second;
-                new_dest_port = dest_port;
-
-                // if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
-                //     //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
-                //     return nullptr;
-                // }
+            if(source_ip == convert_ip_to_binary(it->first)){
+                auto& array_port_pair = it->second;
+                int size = array_port_pair.size();
+                for(int i = 0; i < size;i++){
+                    if(source_port == array_port_pair[i].first){
+                        new_source_ip = wan_ip_bin;
+                        new_dest_ip = dest_ip;
+                        new_source_port = array_port_pair[i].second;
+                        new_dest_port = dest_port;
+                        match = true;
+                        if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
+                            //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
+                            return nullptr;
+                        }
+                        break;
+                    }
+                }
+            }
+            if(match){
                 break;
             }
         }
@@ -679,6 +714,12 @@ uint32_t Server::convert_ip_to_binary(const std::string& ip_address) {
     return result;
 }
 
+std::string Server::convert_uint32_to_ip(uint32_t ip) {
+    std::stringstream ss;
+    ss << ((ip >> 24) & 0xFF) << '.' << ((ip >> 16) & 0xFF) << '.' << ((ip >> 8) & 0xFF) << '.' << (ip & 0xFF);
+    return ss.str();
+}
+
 // uint32_t Server::convert_ip_to_binary(const std::string& ip_address) {
 //     struct in_addr addr;
 //     int result = inet_pton(AF_INET, ip_address.c_str(), &(addr));
@@ -723,7 +764,7 @@ void Server::parse_config(std::string config){
         std::string ip_address = match_regex[1].str();
         lan_index_map[ip_address] = lan_ip_index;
         if(port_map.find(ip_address) == port_map.end()){
-            port_map[ip_address] = std::make_pair(0,0);
+            port_map[ip_address] = std::vector<std::pair<uint16_t,uint16_t>>();
         }
         lan_ip_index++;
         std::getline(ss, line, '\n');
@@ -741,7 +782,7 @@ void Server::parse_config(std::string config){
             std::cerr << "Error, specified port pairing for ip address not defined in LAN: " << ip_address <<std::endl;
             //return;
         }
-        port_map[ip_address] = port_pair;
+        port_map[ip_address].push_back(port_pair);
         std::getline(ss, line, '\n');
         search = line.cbegin();
     }
@@ -777,7 +818,12 @@ void Server::parse_config(std::string config){
     }
     //output the port mappings of the LAN ip addresses to the WAN ip.
     for (auto it = port_map.begin(); it != port_map.end(); ++it) {
-        std::cout << "LAN IP: " << it->first << "\nLAN Port: " << it->second.first << " WAN Port: " << it->second.second << std::endl;
+        auto& array_port_pair = it->second;
+        std::cout << "LAN IP: " << it->first << "\n";
+        int size = array_port_pair.size();
+        for(int i = 0; i < size;i++){
+            std::cout <<" LAN Port: " << array_port_pair[i].first << " WAN Port: " << array_port_pair[i].second << std::endl;
+        }
     }
     //Output the entries of the exclusion map for testing
     std::cout << "Exclusion Map:" << std::endl;
@@ -974,7 +1020,7 @@ void Server::run_server(){
             }
 
             for (int i = 0; i < MAX_CONNECTIONS; i++) {
-                    if (client_sockets[i] == 0) {
+                    if (client_sockets[i] == 0 && map_index < num_lan_ips) {
                         client_sockets[i] = new_client_socket;
                         break;
                     }
@@ -1058,26 +1104,25 @@ void Server::process_client_socket(int& client_socket){
     std::cout<<"valid checksum: "<< isvalid <<'\n';
 
     std::cout << ip_header.total_length <<std::endl;
-    std::cout << "Packet contents:" << std::endl;
 
     packet = process_packet(packet);
 
-    std::cout<<"processed packet. client: " << client_socket<<'\n';
+    // std::cout<<"processed packet. client: " << client_socket<<'\n';
 
-    IP_Packet ip_header1 = parse_IPv4_Header(packet);
-    printIPv4Header(ip_header1);
+    // IP_Packet ip_header1 = parse_IPv4_Header(packet);
+    // printIPv4Header(ip_header1);
 
-    uint16_t protocol1 = static_cast<uint16_t>(ip_header.time_to_live_and_protocol & 0x00FF);
-    if(protocol1 == 6){
-        TCP_Packet tcp = get_tcp_packet(ip_header,packet);
-        print_tcp_packet(tcp);
-    }
-    else if(protocol1 == 17){
-        UDP_Packet udp = get_udp_packet(ip_header,packet);
-        print_udp_packet(udp);
-    }
-    bool isvalid1 = valid_checksum(ip_header,packet);
-    std::cout<<"valid checksum: "<< isvalid1 <<'\n';
+    // uint16_t protocol1 = static_cast<uint16_t>(ip_header.time_to_live_and_protocol & 0x00FF);
+    // if(protocol1 == 6){
+    //     TCP_Packet tcp = get_tcp_packet(ip_header,packet);
+    //     print_tcp_packet(tcp);
+    // }
+    // else if(protocol1 == 17){
+    //     UDP_Packet udp = get_udp_packet(ip_header,packet);
+    //     print_udp_packet(udp);
+    // }
+    // bool isvalid1 = valid_checksum(ip_header,packet);
+    // std::cout<<"valid checksum: "<< isvalid1 <<'\n';
 
 
     if(packet != nullptr){

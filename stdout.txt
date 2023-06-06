@@ -12,11 +12,10 @@ Parsing Config
 Server's LAN IP: 192.168.1.1
 Server's WAN IP: 98.149.235.132
 LAN IP: 0.0.0.0
-LAN Port: 0 WAN Port: 0
 LAN IP: 192.168.1.100
-LAN Port: 8080 WAN Port: 8080
+ LAN Port: 8080 WAN Port: 8080
 LAN IP: 192.168.1.200
-LAN Port: 9000 WAN Port: 443
+ LAN Port: 9000 WAN Port: 443
 Exclusion Map:
 
 Binding socket to 5152

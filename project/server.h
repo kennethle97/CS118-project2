@@ -44,6 +44,7 @@ class Server {
 
     void parse_config(std::string config);
     uint32_t convert_ip_to_binary(const std::string& ip_address);
+    std::string convert_uint32_to_ip(uint32_t ip);
     bool check_excluded_ip_address(uint32_t source_ip,uint32_t dest_ip,uint16_t source_port,uint16_t dest_port);
     
     IP_Packet parse_IPv4_Header(char* packet);
@@ -82,7 +83,7 @@ class Server {
     const char* wan_port_ip = "0.0.0.0";
     uint32_t lan_subnet_mask = 0xFFFFFF00;  // Default subnet mask for /24 subnet
     std::map<std::string,int> lan_index_map;
-    std::map<std::string, port_pair>  port_map;
+    std::map<std::string, std::vector<std::pair<uint16_t, uint16_t>>>  port_map;
     std::map<std::string, int> forward_table;
     //ACL
     std::map<std::string,std::map<std::string,std::pair<exclusion_range,exclusion_range >>> exclusion_map;
