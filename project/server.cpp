@@ -558,8 +558,8 @@ char* Server::process_packet(char* buffer){
     //if the source ip is the wan ip then we are forwarding a messaage from the internet to someone in the lan.
     if(dest_ip == wan_ip_bin){
         for (auto it = port_map.begin(); it != port_map.end(); ++it) {
-            //if the source port is equal to any wan port dictated in the list of port mappings then we can forward the packet.
-            if(source_port == it->second.second){
+            //if the dest port is equal to any wan port dictated in the list of port mappings then we can forward the packet.
+            if(dest_port == it->second.second){
                 //We set the source ip to be the same and set the destination of the packet to be the port mapped one.
                 new_source_ip = source_ip;
                 new_dest_ip = convert_ip_to_binary(it->first);
