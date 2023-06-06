@@ -49,32 +49,35 @@ struct Server::ip_port_addr{
 
 Server::Server(std::string config) {
     parse_config(config);
-    char* packet = "\x47\x00\x00\x35\x1e\x84\x40\x00\x40\x06\xcb\x49\xc0\xa8\x01\x02\xac\x10\x00\x0a\x10\x00\x00\x50\x60\x70\x70\x70\x04\xd2\x00\x50\x00\x00\x00\x00\x50\x00\x00\x00\x00\x00\x00\x00\xac\x58\x00\x00\x10\x50\x20\x50\x60";
-    IP_Packet parsed_header = parse_IPv4_Header(packet);
-    printIPv4Header(parsed_header);
-    uint16_t protocol = static_cast<uint16_t>(parsed_header.time_to_live_and_protocol & 0x00FF);
-    if(protocol == 6){
-        TCP_Packet tcp = get_tcp_packet(parsed_header,packet);
-        print_tcp_packet(tcp);
-    }
-    else if(protocol == 17){
-        UDP_Packet udp = get_udp_packet(parsed_header,packet);
-        print_udp_packet(udp);
-    }
+    //char* packet = "\x47\x00\x00\x35\x1e\x84\x40\x00\x40\x06\xcb\x49\xc0\xa8\x01\x02\xac\x10\x00\x0a\x10\x00\x00\x50\x60\x70\x70\x70\x04\xd2\x00\x50\x00\x00\x00\x00\x50\x00\x00\x00\x00\x00\x00\x00\xac\x58\x00\x00\x10\x50\x20\x50\x60";
+    // IP_Packet parsed_header = parse_IPv4_Header(packet);
+    // printIPv4Header(parsed_header);
+    // uint16_t protocol = static_cast<uint16_t>(parsed_header.time_to_live_and_protocol & 0x00FF);
+    // if(protocol == 6){
+    //     TCP_Packet tcp = get_tcp_packet(parsed_header,packet);
+    //     print_tcp_packet(tcp);
+    // }
+    // else if(protocol == 17){
+    //     UDP_Packet udp = get_udp_packet(parsed_header,packet);
+    //     print_udp_packet(udp);
+    // }
 
-    printIPv4Header(parsed_header);
-    bool isvalid = valid_checksum(parsed_header,packet);
-    std::cout<<isvalid<<'\n';
+    // printIPv4Header(parsed_header);
+    // bool isvalid = valid_checksum(parsed_header,packet);
+    // std::cout<<isvalid<<'\n';
 
 
     wan_ip_bin = convert_ip_to_binary(wan_ip);
-    std::cout<<wan_ip_bin<<std::endl;
+
 
     lan_ip_bin = convert_ip_to_binary(lan_ip);
-    std::cout<<lan_ip_bin<<std::endl;
 
     local_ip_bin = convert_ip_to_binary(local_ip);
-    std::cout<<local_ip_bin<<std::endl;
+
+
+    // std::cout<<local_ip_bin<<std::endl;
+    // std::cout<<wan_ip_bin<<std::endl;
+    // std::cout<<lan_ip_bin<<std::endl;
     run_server();
 }
 
@@ -178,6 +181,118 @@ Server::UDP_Packet Server::get_udp_packet(IP_Packet ip_header,char* packet) {
 }
 
 
+std::pair<uint16_t,uint16_t> Server::calc_new_checksum(IP_Packet ip_header, char* packet){
+
+    uint16_t protocol = static_cast<uint16_t>(ip_header.time_to_live_and_protocol & 0x00FF);
+    uint16_t header_length = ((ip_header.version_hlength_tos & 0x0F00) >> 8);
+    uint16_t ip_total_length = ip_header.total_length;
+
+
+    //calculate the ip_checksum
+    IP_Packet ip_copy = ip_header;
+    ip_copy.header_checksum = 0;
+
+    uint32_t ip_copy_sum;
+
+    ip_copy_sum = calculate_checksum(&ip_copy,sizeof(ip_copy) - sizeof(ip_copy.options) - 4,0);
+
+    if(ip_copy.options != nullptr){
+        ip_copy_sum += calculate_checksum(ip_copy.options,header_length * 4 -20,1);
+    }
+
+
+    ip_copy_sum = (ip_copy_sum & 0xFFFF) + (ip_copy_sum >> 16);
+
+    while (ip_copy_sum > 0xFFFF) {
+        ip_copy_sum = (ip_copy_sum & 0xFFFF) + (ip_copy_sum >> 16);
+    }
+    uint16_t ip_checksum = ip_copy_sum & 0xFFFF;
+    ip_checksum = ~ip_checksum;
+
+
+    uint32_t transport_checksum = 0;
+    uint16_t final_checksum = 0;
+    uint16_t current_checksum = 0;
+
+    // Both psuedo_header for UDP and TCP are the same.
+    uint8_t pseudo_header[12];
+    // Copy the source IP address (32 bits) into the pseudo header
+    memcpy(pseudo_header, &ip_header.source_ip, sizeof(uint32_t));
+    // Copy the destination IP address (32 bits) into the pseudo header
+    memcpy(pseudo_header + 4, &ip_header.destination_ip, sizeof(uint32_t));
+
+    uint16_t res_and_protocol = static_cast<uint16_t>(ip_header.time_to_live_and_protocol & 0x00FF);
+    memcpy(pseudo_header + 8, &res_and_protocol, sizeof(uint16_t));
+
+    // Copy the TCP/UDP length (16 bits) into the pseudo header
+    uint16_t transport_length = static_cast<uint16_t>(ip_total_length - header_length * 4);
+    memcpy(pseudo_header + 10, &transport_length, sizeof(uint16_t));
+
+
+    transport_checksum += calculate_checksum(pseudo_header, sizeof(pseudo_header),0);
+
+    
+    if(protocol == 6){
+        TCP_Packet tcp_copy = get_tcp_packet(ip_header,packet);
+        current_checksum = tcp_copy.checksum;
+        tcp_copy.checksum = 0;
+
+        transport_checksum += calculate_checksum(&tcp_copy.source_port, sizeof(tcp_copy) - sizeof(tcp_copy.options_and_data) - 4, 0);
+
+        if(tcp_copy.options_and_data != nullptr){
+            std::cout<<"length tcp data: "<<transport_length - 20<<'\n';
+            transport_checksum += calculate_checksum(tcp_copy.options_and_data, transport_length - 20, 1);
+        }
+
+        std::cout << "checkpoint4" << '\n';
+        //If ip_copy_sum ends up being greater than 16 bits after adding two calll to calculate_checksum twice then we carry the bits over again.
+        transport_checksum = (transport_checksum & 0xFFFF) + (transport_checksum >> 16);
+        
+        while (transport_checksum > 0xFFFF) {
+            transport_checksum = (transport_checksum & 0xFFFF) + (transport_checksum >> 16);
+        }
+        final_checksum = transport_checksum & 0xFFFF;
+        //Cast it to a 16 bit unsigned int after the carry bits are added back in.
+        final_checksum = ~final_checksum;
+
+    }
+    else if(protocol == 17){
+        UDP_Packet udp_copy = get_udp_packet(ip_header,packet);
+        current_checksum = udp_copy.checksum;
+        udp_copy.checksum = 0;
+        std::cout<<"size udp: " << sizeof(udp_copy)<< '\n';
+        std::cout<<"size ip_header: " << sizeof(ip_header)<< '\n';
+        std::cout<<"size udp: " << sizeof(udp_copy.data)<< '\n';
+    
+
+        transport_checksum += calculate_checksum(&udp_copy, sizeof(udp_copy) - sizeof(udp_copy.data), 0);
+        
+        std::cout << "size udp_copy" << sizeof(udp_copy) << std::endl;
+
+        if(udp_copy.data != nullptr){
+            transport_checksum += calculate_checksum(udp_copy.data, transport_length - 8, 1);
+        }
+
+        while (transport_checksum > 0xFFFF) {
+            transport_checksum = (transport_checksum & 0xFFFF) + (transport_checksum >> 16);
+        }
+        
+        final_checksum = transport_checksum & 0xFFFF;
+        //Cast it to a 16 bit unsigned int after the carry bits are added back in.
+        final_checksum = ~final_checksum;
+    }
+    //Calculate ip check sum, we can simply call calculate_checksum with the ipv4_header as our input.
+    std::cout << "ip check_sum: " << ip_checksum << '\n';
+    std::cout << "transport check_sum: " << final_checksum << '\n';
+    //If either of the checksum fails for tcp/ip layer then we return false.
+
+    auto new_checksums = std::make_pair(htons(ip_checksum),htons(final_checksum));
+
+    return new_checksums;
+
+}
+
+
 bool Server::valid_checksum(IP_Packet ip_header, char* packet){
 
     uint16_t protocol = static_cast<uint16_t>(ip_header.time_to_live_and_protocol & 0x00FF);
@@ -262,7 +377,9 @@ bool Server::valid_checksum(IP_Packet ip_header, char* packet){
         std::cout<<"size udp: " << sizeof(udp_copy.data)<< '\n';
     
 
-        transport_checksum += calculate_checksum(&udp_copy.source_port, sizeof(udp_copy) - sizeof(udp_copy.data) - 4, 0);
+        transport_checksum += calculate_checksum(&udp_copy, sizeof(udp_copy) - sizeof(udp_copy.data), 0);
+        
+        std::cout << "size udp_copy" << sizeof(udp_copy) << std::endl;
 
         if(udp_copy.data != nullptr){
             transport_checksum += calculate_checksum(udp_copy.data, transport_length - 8, 1);
@@ -301,35 +418,35 @@ uint32_t Server::calculate_checksum(void* data, size_t length, int option) {
     uint32_t sum = 0;
 
     for (size_t i = 0; i < length / 2; ++i) {
-        std::cout << "val: " << (!option ? buffer[i] : ntohs(buffer[i])) << "\niteration : " << i << '\n';
+        //std::cout << "val: " << (!option ? buffer[i] : ntohs(buffer[i])) << "\niteration : " << i << '\n';
         sum += !option ? (buffer[i]) : ntohs(buffer[i]);
-        std::cout<<"sum: " << sum <<" iteration: " << i << '\n';
+        ///std::cout<<"sum: " << sum <<" iteration: " << i << '\n';
     }
 
     // If the length is odd, add the last byte
     if (length % 2 != 0) {
         uint16_t odd_byte = static_cast<uint16_t>(reinterpret_cast<uint8_t*>(data)[length - 1]);
-        std::cout<< "val odd byte " << (odd_byte << 8) << '\n';
+        //std::cout<< "val odd byte " << (odd_byte << 8) << '\n';
         sum += (odd_byte << 8);  // Pad the odd byte on the right side
-        std::cout << "sum odd byte: " << sum << " iteration: " << '\n';
+        //std::cout << "sum odd byte: " << sum << " iteration: " << '\n';
     }
 
 
     return sum;
 }
 
-char* Server::deduct_TTL(char* packet) {
-    //deduct the TTL packet by one
-    uint8_t* buffer = reinterpret_cast<uint8_t*>(packet);
-    //if ttl is 0 or 1 by the time it is recieved we return nullptr to drop the packet.
-    if((buffer[8] == 0) | (buffer[8] == 1)){
-        return nullptr;
-    }
-    else{
-         --buffer[8];
-    }
-    return packet;
-}
+// char* Server::deduct_TTL(char* packet) {
+//     //deduct the TTL packet by one
+//     uint8_t* buffer = reinterpret_cast<uint8_t*>(packet);
+//     //if ttl is 0 or 1 by the time it is recieved we return nullptr to drop the packet.
+//     if((buffer[8] == 0) | (buffer[8] == 1)){
+//         return nullptr;
+//     }
+//     else{
+//          --buffer[8];
+//     }
+//     return packet;
+// }
 
 Server::ip_port_addr Server::get_ip_port_vals(char* packet){
     ip_port_addr addr_block;
@@ -356,6 +473,14 @@ char* Server::change_packet_vals(char* buffer,uint32_t source_ip,uint32_t dest_i
     uint16_t header_length = ((ip_header.version_hlength_tos & 0x0F00) >> 8);
     uint8_t * packet_buffer = reinterpret_cast<uint8_t*> (packet);
 
+    //if ttl is 0 or 1 by the time it is recieved we return nullptr to drop the packet.
+    if((packet_buffer[8] == 0) | (packet_buffer[8] == 1)){
+        return nullptr;
+    }
+    else{
+         --packet_buffer[8];
+    }
+
     memcpy(packet_buffer + 12, &source_ip, sizeof(uint32_t));
     memcpy(packet_buffer + 16, &dest_ip, sizeof(uint32_t));
 
@@ -364,37 +489,56 @@ char* Server::change_packet_vals(char* buffer,uint32_t source_ip,uint32_t dest_i
     memcpy(packet_buffer, &source_port, sizeof(uint16_t));
     memcpy(packet_buffer +2 , &dest_port, sizeof(uint16_t));
 
-    return packet;
+    ip_header = parse_IPv4_Header(packet);
+    
+    auto new_checksums = calc_new_checksum(ip_header,packet);
+    header_length = ((ip_header.version_hlength_tos & 0x0F00) >> 8);
+    packet_buffer -= header_length * 4;
 
+    memcpy(packet_buffer + 10, &new_checksums.first,sizeof(uint16_t));
+    
+    packet_buffer += header_length * 4;
+
+
+    uint16_t protocol = static_cast<uint16_t>(ip_header.time_to_live_and_protocol & 0x00FF);
+    
+    if(protocol == 6){
+        memcpy(packet_buffer + 16,&new_checksums.second,sizeof(uint16_t));
+    }
+    else{
+        memcpy(packet_buffer + 6,&new_checksums.second,sizeof(uint16_t));
+    }
+
+    return packet;
 }
 
 //This function replaces the destination port with the actual port forwarding map
 
-uint16_t Server::get_forwarding_port(char* packet){
+int Server::get_forwarding_socket(char* packet){
 
     ip_port_addr addr_block = get_ip_port_vals(packet);
 
-    // uint32_t source_ip = addr_block.source_ip;
     uint32_t dest_ip = addr_block.dest_ip;
-    // uint16_t source_port = addr_block.source_port;
-    // uint16_t dest_port = addr_block.dest_port;
 
-    //By default the destination port is set to 0.
-    uint16_t new_dest_port = 0;
-    
-    for(auto it = lan_index_map.begin();it != lan_index_map.end();++it){
+    int client_socket;
+    auto it = forward_table.begin();
+    client_socket = it->second;// defaults the client socket to the first file descriptor for the ip.
+
+    for(auto it = forward_table.begin();it != forward_table.end();++it){
         uint32_t ip_value = convert_ip_to_binary(it->first);
         if(ip_value == dest_ip){
             //If the destination ip is any of the ip addresses within the local lan we get the index of the map to get the correct port
-            new_dest_port = it->second;
+            client_socket = it->second;
         }
     }
-    return new_dest_port;
+    return client_socket;
+
 }
 char* Server::process_packet(char* buffer){
     char* packet = buffer;
     // IP_Packet ip_header = parse_IPv4_Header(packet);
     ip_port_addr addr_block = get_ip_port_vals(packet);
+    IP_Packet ip_header = parse_IPv4_Header(packet);
 
     uint32_t source_ip = addr_block.source_ip;
     uint32_t dest_ip = addr_block.dest_ip;
@@ -407,10 +551,9 @@ char* Server::process_packet(char* buffer){
     uint16_t new_source_port = 0;
     uint16_t new_dest_port = 0;
 
-
-    // if(!valid_checksum(ip_header,packet)){
-    //         return nullptr;
-    //     }
+    if(!valid_checksum(ip_header,packet)){
+            return nullptr;
+        }
 
     //if the source ip is the wan ip then we are forwarding a messaage from the internet to someone in the lan.
     if(dest_ip == wan_ip_bin){
@@ -435,8 +578,9 @@ char* Server::process_packet(char* buffer){
 
     //Handle LAN traffic here
     else if((source_ip & lan_subnet_mask) == (lan_ip_bin & lan_subnet_mask) && (dest_ip & lan_subnet_mask) == (lan_ip_bin & lan_subnet_mask)){
-        //Honestly we do nothing and just forward the packet as is to the LAN ip address with no changes.
-        
+        //Honestly we do nothing and just forward the packet as is to the LAN ip address with no changes, only to the time to live and header checksums.
+        std::cout<<"Forwarding between lan Ips"<<std::endl;
+        packet = change_packet_vals(packet,htonl(source_ip),htonl(dest_ip),htons(source_port),htons(dest_port));
         return packet;
     }
     //Handle packets being forwarded from the lan to the internet
@@ -459,7 +603,7 @@ char* Server::process_packet(char* buffer){
             }
         }
     }
-    packet = change_packet_vals(packet,new_source_ip,new_dest_ip,new_source_port,new_dest_port);
+    packet = change_packet_vals(packet,htonl(new_source_ip),htonl(new_dest_ip),htons(new_source_port),htons(new_dest_port));
     //packet = deduct_TTL(packet);
     return packet;
 }
@@ -569,8 +713,6 @@ void Server::parse_config(std::string config){
 
     wan_ip = WanIp;
     lan_ip = LanIp;
-    //Skip WAN 0.0.0.0 line as it will always be 0.0.0.0
-    std::getline(ss, line, '\n');
     std::getline(ss, line, '\n');
     //Parse through the first part of the block until first \n character by checking if the line contains
 
@@ -775,6 +917,10 @@ void Server::run_server(){
 
      printf("Waiting to accept connections from clients.\n");
 
+    int num_lan_ips = lan_index_map.size();
+    std::cout<<"num_lan_ips: " << num_lan_ips << '\n';
+    int map_index = 0;
+
     while(1){
         //Create set of file descriptors
         FD_ZERO(&read_fds);
@@ -816,23 +962,39 @@ void Server::run_server(){
             int client_port = ntohs(client_addr.sin_port);
             printf("Accepted connection from client:\n %s:%d\n", client_ip, client_port);
 
+            if(map_index < num_lan_ips ){
+                //intialize actual forwarding table.
+                auto iter = lan_index_map.begin();
+                std::advance(iter,map_index);
+                if(iter != lan_index_map.end()){
+                std::string lan_string = iter->first;
+                forward_table[lan_string]= new_client_socket;
+                }
+                map_index++;
+            }
+
             for (int i = 0; i < MAX_CONNECTIONS; i++) {
                     if (client_sockets[i] == 0) {
                         client_sockets[i] = new_client_socket;
                         break;
                     }
             }
-
         }
 
         for(int i = 0; i < MAX_CONNECTIONS; i++){
             sd = client_sockets[i];
             if(sd > 0 && FD_ISSET(sd, &read_fds)){
-                process_client_socket(sd);
+                printf("Processing client %d\n", i);
+                process_client_socket(client_sockets[i]);
                 printf("Client %d: processed successfully\n", i);
             }
+            // if(i < num_lan_ips && ){
+            //     close(client_sockets[i]);
+            //     client_sockets[i] = 0;
+            //}
         }
     }
+    close(wan_fd);
 }
 
 
@@ -863,30 +1025,75 @@ void Server::establish_TCP_Connection(char* packet, uint32_t destIP, uint16_t de
 }
 
 
-void Server::process_client_socket(int client_socket){
+void Server::process_client_socket(int& client_socket){
     char buffer[BUFFER_SIZE];
     // Receive data from client if there is data
     memset(buffer,0,BUFFER_SIZE);
     //need to test to see if the null terminating string affects the number of bytes recieved.
     int number_bytes = recv(client_socket, buffer, BUFFER_SIZE,0);
+
+    // if(number_bytes == 0){
+    //     close(client_socket);
+    //     client_socket = 0;
+    // }
+    std::cout<<"Number Bytes: " << number_bytes<<std::endl;
     // buffer[number_bytes] = '\0';
 
     printf("Client %d: %s\n", client_socket, buffer);
+
     char* packet = buffer;
+    IP_Packet ip_header = parse_IPv4_Header(packet);
+    printIPv4Header(ip_header);
+
+    uint16_t protocol = static_cast<uint16_t>(ip_header.time_to_live_and_protocol & 0x00FF);
+    if(protocol == 6){
+        TCP_Packet tcp = get_tcp_packet(ip_header,packet);
+        print_tcp_packet(tcp);
+    }
+    else if(protocol == 17){
+        UDP_Packet udp = get_udp_packet(ip_header,packet);
+        print_udp_packet(udp);
+    }
+    bool isvalid = valid_checksum(ip_header,packet);
+    std::cout<<"valid checksum: "<< isvalid <<'\n';
+
+    std::cout << ip_header.total_length <<std::endl;
+    std::cout << "Packet contents:" << std::endl;
+
     packet = process_packet(packet);
 
-    if(packet != nullptr){
-        ip_port_addr addr_block = get_ip_port_vals(packet);
+    std::cout<<"processed packet. client: " << client_socket<<'\n';
 
-        uint32_t destination_ip = addr_block.dest_ip;
-        uint16_t destination_port = get_forwarding_port(packet);
-        establish_TCP_Connection(packet,destination_ip,destination_port,number_bytes);
+    IP_Packet ip_header1 = parse_IPv4_Header(packet);
+    printIPv4Header(ip_header1);
+
+    uint16_t protocol1 = static_cast<uint16_t>(ip_header.time_to_live_and_protocol & 0x00FF);
+    if(protocol1 == 6){
+        TCP_Packet tcp = get_tcp_packet(ip_header,packet);
+        print_tcp_packet(tcp);
     }
-    //if the packet was a nullptr or the TTL is <= 0 we just close the connection and drop the packet
-    else{
-        //
-        close(client_socket);
+    else if(protocol1 == 17){
+        UDP_Packet udp = get_udp_packet(ip_header,packet);
+        print_udp_packet(udp);
     }
-    //In any case close the socket after the payload has been sent successfully.
-    close(client_socket);  
+    bool isvalid1 = valid_checksum(ip_header,packet);
+    std::cout<<"valid checksum: "<< isvalid1 <<'\n';
+
+
+    if(packet != nullptr){
+        int forward_socket = get_forwarding_socket(packet);
+        for(auto it = forward_table.begin();it != forward_table.end();it++){
+            std::cout<<"client ip: " << it->first <<"socket_fd:" << it->second <<'\n';
+        }
+        std::cout <<forward_socket<<std::endl;
+
+        // uint32_t destination_ip = addr_block.dest_ip;
+        // uint16_t destination_port = addr_block.dest_port;
+
+        if(send(forward_socket, packet, number_bytes, 0) == -1){
+            perror("Sending error");
+        }
+        //establish_TCP_Connection(packet,destination_ip,destination_port,number_bytes);
+    }
+    //In any case close the socket after the payload has been sent successfully. 
     }

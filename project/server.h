@@ -22,6 +22,7 @@
 #include<utility>
 #include<sstream>
 #include<ctime>
+#include<iomanip>
 
 typedef std::pair<int, int> exclusion_range;
 typedef std::pair<int, int> port_pair;
@@ -51,15 +52,15 @@ class Server {
 
     bool valid_checksum(IP_Packet ip_header, char* packet);
     uint32_t calculate_checksum(void* data, size_t length,int option);
-    char* deduct_TTL(char* packet);
+    // char* deduct_TTL(char* packet);
     ip_port_addr get_ip_port_vals(char* buffer); 
     char* change_packet_vals(char* buffer,uint32_t source_ip,uint32_t dest_ip, uint16_t source_port, uint16_t dest_port);
     char* process_packet(char* packet);
-    uint16_t get_forwarding_port(char* packet);
-
+    int get_forwarding_socket(char* packet);
+    std::pair<uint16_t,uint16_t>calc_new_checksum(IP_Packet ip_header, char* packet);
     void run_server();
     void establish_TCP_Connection(char* packet, uint32_t destIP, uint16_t destPort,uint16_t num_bytes);
-    void process_client_socket(int client_socket);
+    void process_client_socket(int& client_socket);
 
 
     void printIPv4Header(IP_Packet& header);
@@ -80,9 +81,9 @@ class Server {
 
     const char* wan_port_ip = "0.0.0.0";
     uint32_t lan_subnet_mask = 0xFFFFFF00;  // Default subnet mask for /24 subnet
-
     std::map<std::string,int> lan_index_map;
     std::map<std::string, port_pair>  port_map;
+    std::map<std::string, int> forward_table;
     //ACL
     std::map<std::string,std::map<std::string,std::pair<exclusion_range,exclusion_range >>> exclusion_map;
 
