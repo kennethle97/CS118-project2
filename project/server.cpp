@@ -905,6 +905,11 @@ bool Server::check_excluded_ip_address(uint32_t source_ip,uint32_t dest_ip,uint1
     return false;
 }
 
+volatile sig_atomic_t signal_raised = false;
+
+void Server::signalHandler(int signal) {
+    signal_raised = true;
+}
 void Server::run_server(){
 
     //pthread_t threads[MAX_CONNECTIONS];
@@ -916,6 +921,12 @@ void Server::run_server(){
     //Initialize array of sockets to be 0s
     int client_sockets[MAX_CONNECTIONS];
     memset(client_sockets, 0, sizeof(client_sockets));
+
+    // int* client_socket_ptr = client_sockets; 
+
+    std::signal(SIGINT, Server::signalHandler);
+    std::signal(SIGTERM, Server::signalHandler);
+
 
     int sd,max_sd;
     int activity;
@@ -968,6 +979,12 @@ void Server::run_server(){
     int map_index = 0;
 
     while(1){
+        if(signal_raised){
+            for(int i = 0; i < MAX_CONNECTIONS;i++){
+                close(client_sockets[i]);
+            }
+            close(wan_fd);
+        }
         //Create set of file descriptors
         FD_ZERO(&read_fds);
 

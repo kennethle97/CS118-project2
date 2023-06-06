@@ -23,6 +23,7 @@
 #include<sstream>
 #include<ctime>
 #include<iomanip>
+#include<csignal>
 
 typedef std::pair<int, int> exclusion_range;
 typedef std::pair<int, int> port_pair;
@@ -62,7 +63,7 @@ class Server {
     void run_server();
     void establish_TCP_Connection(char* packet, uint32_t destIP, uint16_t destPort,uint16_t num_bytes);
     void process_client_socket(int& client_socket);
-
+    static void signalHandler(int signal);
 
     void printIPv4Header(IP_Packet& header);
     void print_tcp_packet(const TCP_Packet& tcp_packet);
