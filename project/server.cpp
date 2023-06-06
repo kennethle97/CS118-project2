@@ -964,8 +964,14 @@ void Server::run_server(){
 
     if(setsockopt(wan_fd,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof yes) == -1){
         perror("Cannot reset socket options on wan_fd");
+        exit(1);
     }
 
+    if(setsockopt(wan_fd,SOL_SOCKET,SO_REUSEPORT,&yes,sizeof(yes)) == -1){
+        perror("Cannot reuse port");
+        exit(1);
+    }
+    
     if(listen(wan_fd, 10) == -1){
         perror("Error in listening to socket");
         }
