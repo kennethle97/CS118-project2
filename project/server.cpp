@@ -260,7 +260,7 @@ std::pair<uint16_t,uint16_t> Server::calc_new_checksum(IP_Packet ip_header, char
 
         transport_checksum += calculate_checksum(&udp_copy, sizeof(udp_copy) - sizeof(udp_copy.data), 0);
         
-        std::cout << "size udp_copy" << sizeof(udp_copy) << std::endl;
+        // std::cout << "size udp_copy" << sizeof(udp_copy) << std::endl;
 
         if(udp_copy.data != nullptr){
             transport_checksum += calculate_checksum(udp_copy.data, transport_length - 8, 1);
@@ -275,8 +275,8 @@ std::pair<uint16_t,uint16_t> Server::calc_new_checksum(IP_Packet ip_header, char
         final_checksum = ~final_checksum;
     }
     //Calculate ip check sum, we can simply call calculate_checksum with the ipv4_header as our input.
-    std::cout << "ip check_sum: " << ip_checksum << '\n';
-    std::cout << "transport check_sum: " << final_checksum << '\n';
+    // std::cout << "ip check_sum: " << ip_checksum << '\n';
+    // std::cout << "transport check_sum: " << final_checksum << '\n';
     //If either of the checksum fails for tcp/ip layer then we return false.
 
     auto new_checksums = std::make_pair(htons(ip_checksum),htons(final_checksum));
@@ -383,15 +383,15 @@ bool Server::valid_checksum(IP_Packet ip_header, char* packet){
         final_checksum = ~final_checksum;
     }
     //Calculate ip check sum, we can simply call calculate_checksum with the ipv4_header as our input.
-    std::cout << "ip check_sum: " << ip_checksum << '\n';
-    std::cout << "transport check_sum: " << final_checksum << '\n';
+    // std::cout << "ip check_sum: " << ip_checksum << '\n';
+    // std::cout << "transport check_sum: " << final_checksum << '\n';
     //If either of the checksum fails for tcp/ip layer then we return false.
-    if(final_checksum != current_checksum){
-        std::cout<<"Tcp checksum failed"<<'\n';
-    }
-    if(ip_checksum != ip_header.header_checksum){
-        std::cout<<"ip checksum failed"<<'\n';
-    }
+    // if(final_checksum != current_checksum){
+    //     std::cout<<"Tcp checksum failed"<<'\n';
+    // }
+    // if(ip_checksum != ip_header.header_checksum){
+    //     std::cout<<"ip checksum failed"<<'\n';
+    // }
 
 
     if((final_checksum != current_checksum) | (ip_checksum != ip_header.header_checksum)){
@@ -595,7 +595,7 @@ char* Server::process_packet(char* buffer){
                     //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
                     return nullptr;
             }
-        std::cout<<"Forwarding between lan Ips"<<std::endl;
+        // std::cout<<"Forwarding between lan Ips"<<std::endl;
         packet = change_packet_vals(packet,htonl(source_ip),htonl(dest_ip),htons(source_port),htons(dest_port));
         return packet;
     }
@@ -822,29 +822,29 @@ void Server::parse_config(std::string config){
         search = line.cbegin();
     }
     //output the port mappings of the LAN ip addresses to the WAN ip.
-    for (auto it = port_map.begin(); it != port_map.end(); ++it) {
-        auto& array_port_pair = it->second;
-        std::cout << "LAN IP: " << it->first << "\n";
-        int size = array_port_pair.size();
-        for(int i = 0; i < size;i++){
-            std::cout <<" LAN Port: " << array_port_pair[i].first << " WAN Port: " << array_port_pair[i].second << std::endl;
-        }
-    }
-    //Output the entries of the exclusion map for testing
-    std::cout << "Exclusion Map:" << std::endl;
-    for (const auto& entry : exclusion_map) {
-        std::cout << "Host IP: " << entry.first << std::endl;
-        const auto& inner_map = entry.second;
-        for (const auto& inner_entry : inner_map) {
-            std::cout << "  Client IP: " << inner_entry.first << std::endl;
-            const auto& exclusion_range_pair = inner_entry.second;
-            std::cout << "    Excluded Host Port Ranges: " << exclusion_range_pair.first.first
-                    << "-" << exclusion_range_pair.first.second << std::endl;
-            std::cout << "    Excluded Client Port Ranges: " << exclusion_range_pair.second.first
-                    << "-" << exclusion_range_pair.second.second << std::endl;
-        }
-    }
-    std::cout<<std::endl;
+    // for (auto it = port_map.begin(); it != port_map.end(); ++it) {
+    //     auto& array_port_pair = it->second;
+    //     std::cout << "LAN IP: " << it->first << "\n";
+    //     int size = array_port_pair.size();
+    //     for(int i = 0; i < size;i++){
+    //         std::cout <<" LAN Port: " << array_port_pair[i].first << " WAN Port: " << array_port_pair[i].second << std::endl;
+    //     }
+    // }
+    // //Output the entries of the exclusion map for testing
+    // std::cout << "Exclusion Map:" << std::endl;
+    // for (const auto& entry : exclusion_map) {
+    //     std::cout << "Host IP: " << entry.first << std::endl;
+    //     const auto& inner_map = entry.second;
+    //     for (const auto& inner_entry : inner_map) {
+    //         std::cout << "  Client IP: " << inner_entry.first << std::endl;
+    //         const auto& exclusion_range_pair = inner_entry.second;
+    //         std::cout << "    Excluded Host Port Ranges: " << exclusion_range_pair.first.first
+    //                 << "-" << exclusion_range_pair.first.second << std::endl;
+    //         std::cout << "    Excluded Client Port Ranges: " << exclusion_range_pair.second.first
+    //                 << "-" << exclusion_range_pair.second.second << std::endl;
+    //     }
+    // }
+    // std::cout<<std::endl;
 }
 
 bool Server::check_excluded_ip_address(uint32_t source_ip,uint32_t dest_ip,uint16_t source_port,uint16_t dest_port){
@@ -986,7 +986,7 @@ void Server::run_server(){
      printf("Waiting to accept connections from clients.\n");
 
     int num_lan_ips = lan_index_map.size();
-    std::cout<<"num_lan_ips: " << num_lan_ips << '\n';
+    // std::cout<<"num_lan_ips: " << num_lan_ips << '\n';
     int map_index = 0;
 
     while(1){
@@ -1107,7 +1107,7 @@ void Server::process_client_socket(int& client_socket){
     //need to test to see if the null terminating string affects the number of bytes recieved.
     int number_bytes = recv(client_socket, buffer, BUFFER_SIZE,0);
 
-    std::cout<<"Number Bytes: " << number_bytes<<std::endl;
+    // std::cout<<"Number Bytes: " << number_bytes<<std::endl;
     //buffer[number_bytes] = '\0';
 
     // if(number_bytes == 0){
@@ -1115,7 +1115,7 @@ void Server::process_client_socket(int& client_socket){
     //     client_socket = 0;
     // }
 
-    printf("Client %d: %s\n", client_socket, buffer);
+    // printf("Client %d: %s\n", client_socket, buffer);
 
     char* packet = buffer;
     // IP_Packet ip_header = parse_IPv4_Header(packet);
@@ -1157,10 +1157,10 @@ void Server::process_client_socket(int& client_socket){
 
     if(packet != nullptr){
         int forward_socket = get_forwarding_socket(packet);
-        for(auto it = forward_table.begin();it != forward_table.end();it++){
-            std::cout<<"client ip: " << it->first <<"socket_fd:" << it->second <<'\n';
-        }
-        std::cout <<forward_socket<<std::endl;
+        // for(auto it = forward_table.begin();it != forward_table.end();it++){
+        //     // std::cout<<"client ip: " << it->first <<"socket_fd:" << it->second <<'\n';
+        // }
+        // std::cout <<forward_socket<<std::endl;
 
         // uint32_t destination_ip = addr_block.dest_ip;
         // uint16_t destination_port = addr_block.dest_port;
