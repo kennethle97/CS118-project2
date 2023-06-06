@@ -1,0 +1,107 @@
+commit f7fb5daff8c381f6aa6f6ea1c6e2fe0b340acf1a
+Author: root <kennethle95@g.ucla.edu>
+Date:   Tue Jun 6 08:24:07 2023 -0700
+
+    ...
+
+commit 2a648caf15c95d37431e31e2b4ac163df1e243e5
+Author: root <kennethle95@g.ucla.edu>
+Date:   Tue Jun 6 07:33:54 2023 -0700
+
+    really tired
+
+commit f959f548aa3567e305a78e1524643867599e72a9
+Author: root <kennethle95@g.ucla.edu>
+Date:   Tue Jun 6 07:14:58 2023 -0700
+
+    zz
+
+commit 0275ee91f2c1df32038c21e94e81952c5cf4bc0b
+Author: root <kennethle95@g.ucla.edu>
+Date:   Tue Jun 6 07:04:24 2023 -0700
+
+    Moved ACL to after NAPT translation
+
+commit ec66dbb86b0917ea2873e1087d42b16bd9a32f62
+Author: root <kennethle95@g.ucla.edu>
+Date:   Tue Jun 6 06:32:48 2023 -0700
+
+    Got rid of all std::cout references to speed up the program
+
+commit 744f2cbf7ad3a907a201b0443028d52d5a3b8338
+Author: root <kennethle95@g.ucla.edu>
+Date:   Tue Jun 6 06:26:50 2023 -0700
+
+    gonna keep going
+
+commit 5e24fd6bd9b62d7e01340d66533578e9bd7a71b6
+Author: root <kennethle95@g.ucla.edu>
+Date:   Tue Jun 6 06:23:55 2023 -0700
+
+     GOT AN 85 BUT I NEED TO DO BETTER
+
+commit 29bc1c62fabe386702656859cd0d2874ba26d40f
+Author: root <kennethle95@g.ucla.edu>
+Date:   Tue Jun 6 06:18:04 2023 -0700
+
+    PASSED ALL AUTO GRADER SCRIPTS PLS GIVE ME GOOD GRADE
+
+commit 16122ac07a61ca5548f3d969307ddf4172c1af37
+Author: root <kennethle95@g.ucla.edu>
+Date:   Tue Jun 6 05:11:21 2023 -0700
+
+    please work
+
+commit c7e16775b65967db10fc3efd39954823cf72324f
+Author: root <kennethle95@g.ucla.edu>
+Date:   Tue Jun 6 05:04:20 2023 -0700
+
+    using reuse addr and reuseport instead
+
+commit 402e4f7f8811ab326963faf4e970c7c46fe72117
+Author: root <kennethle95@g.ucla.edu>
+Date:   Tue Jun 6 04:56:38 2023 -0700
+
+    Added signals to be raised to close any open sockets
+
+commit 9f2da41b75dbe887a2c7af1c0d89ab047104ca50
+Author: root <kennethle95@g.ucla.edu>
+Date:   Tue Jun 6 04:14:37 2023 -0700
+
+    Almost all checks are complete.last testcase is setting3.json also need to fix closing socket errors
+
+commit 941b4cf62e189e12a52023aa9670c3e4bd48c2a8
+Author: root <kennethle95@g.ucla.edu>
+Date:   Tue Jun 6 01:09:40 2023 -0700
+
+    getting closer past checkpoint 2
+
+commit 00c306b0c8402fd0332995efb2fe2eb981acb74c
+Author: root <kennethle95@g.ucla.edu>
+Date:   Tue Jun 6 00:52:04 2023 -0700
+
+    ALMOST DONE
+
+commit c175f43fddc9f7742b0e1329b109174c981771b4
+Author: root <kennethle95@g.ucla.edu>
+Date:   Mon Jun 5 19:51:11 2023 -0700
+
+    etc.
+
+commit abe888005b9741325add9307395b93a5e778d362
+Author: root <kennethle95@g.ucla.edu>
+Date:   Mon Jun 5 18:34:27 2023 -0700
+
+    blank
+
+commit fa4b817a9e942eb6dd476ec1182102fcd8c182a7
+Author: root <kennethle95@g.ucla.edu>
+Date:   Mon Jun 5 18:32:45 2023 -0700
+
+    more changes
+
+commit 57d11ca9772f113d727e40bfe994e59461f94ec1
+Author: root <kennethle95@g.ucla.edu>
+Date:   Mon Jun 5 18:05:40 2023 -0700
+
+    New repo for only project2

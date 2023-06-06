@@ -24,6 +24,7 @@
 #include<ctime>
 #include<iomanip>
 #include<csignal>
+#include<thread>
 
 typedef std::pair<int, int> exclusion_range;
 typedef std::pair<int, int> port_pair;

@@ -1,7 +1,7 @@
 #include "server.h"
 
-#define BUFFER_SIZE 65536
-#define MAX_CONNECTIONS 10
+#define BUFFER_SIZE 8192
+#define MAX_CONNECTIONS 15
 #define DEFAULT_PORT 5152
 
 
@@ -522,14 +522,17 @@ int Server::get_forwarding_socket(char* packet){
     int client_socket;
     auto it = forward_table.begin();
     client_socket = it->second;// defaults the client socket to the first file descriptor for the ip.
-
-    for(auto it = forward_table.begin();it != forward_table.end();++it){
-        uint32_t ip_value = convert_ip_to_binary(it->first);
-        if(ip_value == dest_ip){
-            //If the destination ip is any of the ip addresses within the local lan we get the index of the map to get the correct port
-            client_socket = it->second;
-        }
+    it = forward_table.find(convert_uint32_to_ip(dest_ip));
+    if(it != forward_table.end()){
+        client_socket = it->second;
     }
+    // for(auto it = forward_table.begin();it != forward_table.end();++it){
+    //     uint32_t ip_value = convert_ip_to_binary(it->first);
+    //     if(ip_value == dest_ip){
+    //         //If the destination ip is any of the ip addresses within the local lan we get the index of the map to get the correct port
+    //         client_socket = it->second;
+    //     }
+    // }
     return client_socket;
 
 }
@@ -552,6 +555,10 @@ char* Server::process_packet(char* buffer){
 
     if(!valid_checksum(ip_header,packet)){
             return nullptr;
+    }
+    if(check_excluded_ip_address(source_ip,dest_ip,source_port,dest_port)){
+                    //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
+                    return nullptr;
     }
 
     //if the source ip is the wan ip then we are forwarding a messaage from the internet to someone in the lan.
@@ -1015,16 +1022,12 @@ void Server::run_server(){
     int num_lan_ips = lan_index_map.size();
     // std::cout<<"num_lan_ips: " << num_lan_ips << '\n';
     int map_index = 0;
-
-    while(1){
-        if(signal_raised){
-            for(int i = 0; i < MAX_CONNECTIONS;i++){
-                close(client_sockets[i]);
-                client_sockets[i] = 0;
-            }
-            close(wan_fd);
-            break;
-        }
+    
+    // FD_ZERO(&read_fds);
+    // FD_SET(wan_fd,&read_fds);
+    // //std::shared_ptr<Server> self = shared_from_this(); 
+    // max_sd = wan_fd;
+    while(!signal_raised){
         //Create set of file descriptors
         FD_ZERO(&read_fds);
 
@@ -1032,17 +1035,14 @@ void Server::run_server(){
 
         FD_SET(wan_fd,&read_fds);
         max_sd = wan_fd;
-
         for(int i = 0; i < MAX_CONNECTIONS; i++){
             sd = client_sockets[i];
-
             if(sd > 0){
                 FD_SET(sd, &read_fds);
             }
             if(sd > max_sd){
                 max_sd = sd;
             }
-
         }
 
         activity = select(max_sd+1, &read_fds,NULL,NULL,NULL);
@@ -1063,7 +1063,7 @@ void Server::run_server(){
             char client_ip[INET_ADDRSTRLEN];
             inet_ntop(AF_INET, &client_addr.sin_addr, client_ip,sizeof(client_ip));
             int client_port = ntohs(client_addr.sin_port);
-            printf("Accepted connection from client:\n %s:%d\n", client_ip, client_port);
+            //printf("Accepted connection from client:\n %s:%d\n", client_ip, client_port);
 
             if(map_index < num_lan_ips ){
                 //intialize actual forwarding table.
@@ -1087,9 +1087,11 @@ void Server::run_server(){
         for(int i = 0; i < MAX_CONNECTIONS; i++){
             sd = client_sockets[i];
             if(sd > 0 && FD_ISSET(sd, &read_fds)){
-                printf("Processing client %d\n", i);
+                //printf("Processing client %d\n", i);
                 process_client_socket(client_sockets[i]);
-                printf("Client %d: processed successfully\n", i);
+                // std::thread processThread(&Server::process_client_socket,this,std::ref(client_sockets[i]));
+                // processThread.detach();
+                //printf("Client %d: processed successfully\n", i);
             }
             // if(i < num_lan_ips && ){
             //     close(client_sockets[i]);
@@ -1097,6 +1099,11 @@ void Server::run_server(){
             //}
         }
     }
+    for(int i = 0; i < MAX_CONNECTIONS;i++){
+                close(client_sockets[i]);
+                // client_sockets[i] = 0;
+            }
+            close(wan_fd);
 }
 
 

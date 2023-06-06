@@ -3,56 +3,16 @@ Configuration: 192.168.1.1 98.149.235.132
 192.168.1.100
 192.168.1.200
 
+192.168.1.100 8080 8080
+192.168.1.200 9000 443
 
 
 
 Parsing Config
 Server's LAN IP: 192.168.1.1
 Server's WAN IP: 98.149.235.132
-LAN IP: 0.0.0.0
-LAN IP: 192.168.1.100
-LAN IP: 192.168.1.200
-Exclusion Map:
-
 Binding socket to 5152
 Listening to socket 5152
 Waiting to accept connections from clients.
-num_lan_ips: 3
-Accepted connection from client:
- 127.0.0.1:50164
-Accepted connection from client:
- 127.0.0.1:50180
-Accepted connection from client:
- 127.0.0.1:50190
-Processing client 1
-Number Bytes: 28
-Client 5: E
 size udp_copy16
-ip check_sum: 46676
-transport check_sum: 20585
-Forwarding between lan Ips
 size udp_copy16
-ip check_sum: 46932
-transport check_sum: 20585
-client ip: 0.0.0.0socket_fd:4
-client ip: 192.168.1.100socket_fd:5
-client ip: 192.168.1.200socket_fd:6
-6
-Client 1: processed successfully
-Processing client 1
-Number Bytes: 32
-Client 5: F
-size udp_copy16
-ip check_sum: 46159
-transport check_sum: 20585
-Forwarding between lan Ips
-size udp_copy16
-ip check_sum: 46415
-transport check_sum: 20585
-client ip: 0.0.0.0socket_fd:4
-client ip: 192.168.1.100socket_fd:5
-client ip: 192.168.1.200socket_fd:6
-6
-Client 1: processed successfully
-Processing client 2
-Number Bytes: 0
