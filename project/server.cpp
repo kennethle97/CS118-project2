@@ -1,6 +1,6 @@
 #include "server.h"
 
-#define BUFFER_SIZE 65536
+#define BUFFER_SIZE 8192
 #define MAX_CONNECTIONS 10
 #define DEFAULT_PORT 5152
 
@@ -549,7 +549,7 @@ char* Server::process_packet(char* buffer){
         bool port_match_found = false;
         for (auto it = port_map.begin(); it != port_map.end(); ++it) {
             //if the dest port is equal to any wan port dictated in the list of port mappings then we can forward the packet.
-            if(it == port_map.find(wan_ip)){
+            if(it == port_map.find(convert_uint32_to_ip(source_ip))){
                 continue;
             }
             auto& array_port_pair = it->second;
@@ -936,8 +936,6 @@ void Server::run_server(){
     struct sockaddr_in client_addr;
     socklen_t client_addr_size = sizeof(client_addr);
 
-    
-    // char buffer[BUFFER_SIZE];
     int port_number = DEFAULT_PORT;
 
     if((wan_fd = socket(PF_INET, SOCK_STREAM, 0)) == -1){
@@ -990,6 +988,7 @@ void Server::run_server(){
         if(signal_raised){
             for(int i = 0; i < MAX_CONNECTIONS;i++){
                 close(client_sockets[i]);
+                client_sockets[i] = 0;
             }
             close(wan_fd);
             break;
@@ -1046,7 +1045,7 @@ void Server::run_server(){
             }
 
             for (int i = 0; i < MAX_CONNECTIONS; i++) {
-                    if (client_sockets[i] == 0 && map_index < num_lan_ips) {
+                    if (client_sockets[i] == 0) {
                         client_sockets[i] = new_client_socket;
                         break;
                     }
@@ -1103,32 +1102,33 @@ void Server::process_client_socket(int& client_socket){
     //need to test to see if the null terminating string affects the number of bytes recieved.
     int number_bytes = recv(client_socket, buffer, BUFFER_SIZE,0);
 
+    std::cout<<"Number Bytes: " << number_bytes<<std::endl;
+    //buffer[number_bytes] = '\0';
+
     // if(number_bytes == 0){
     //     close(client_socket);
     //     client_socket = 0;
     // }
-    std::cout<<"Number Bytes: " << number_bytes<<std::endl;
-    // buffer[number_bytes] = '\0';
 
     printf("Client %d: %s\n", client_socket, buffer);
 
     char* packet = buffer;
-    IP_Packet ip_header = parse_IPv4_Header(packet);
-    printIPv4Header(ip_header);
+    // IP_Packet ip_header = parse_IPv4_Header(packet);
+    // printIPv4Header(ip_header);
 
-    uint16_t protocol = static_cast<uint16_t>(ip_header.time_to_live_and_protocol & 0x00FF);
-    if(protocol == 6){
-        TCP_Packet tcp = get_tcp_packet(ip_header,packet);
-        print_tcp_packet(tcp);
-    }
-    else if(protocol == 17){
-        UDP_Packet udp = get_udp_packet(ip_header,packet);
-        print_udp_packet(udp);
-    }
-    bool isvalid = valid_checksum(ip_header,packet);
-    std::cout<<"valid checksum: "<< isvalid <<'\n';
+    // uint16_t protocol = static_cast<uint16_t>(ip_header.time_to_live_and_protocol & 0x00FF);
+    // if(protocol == 6){
+    //     TCP_Packet tcp = get_tcp_packet(ip_header,packet);
+    //     print_tcp_packet(tcp);
+    // }
+    // else if(protocol == 17){
+    //     UDP_Packet udp = get_udp_packet(ip_header,packet);
+    //     print_udp_packet(udp);
+    // }
+    // bool isvalid = valid_checksum(ip_header,packet);
+    // std::cout<<"valid checksum: "<< isvalid <<'\n';
 
-    std::cout << ip_header.total_length <<std::endl;
+    // std::cout << ip_header.total_length <<std::endl;
 
     packet = process_packet(packet);
 
