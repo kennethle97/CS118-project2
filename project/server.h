@@ -55,6 +55,7 @@ class Server {
     ip_port_addr get_ip_port_vals(char* buffer); 
     char* change_packet_vals(char* buffer,uint32_t source_ip,uint32_t dest_ip, uint16_t source_port, uint16_t dest_port);
     char* process_packet(char* packet);
+    uint16_t get_forwarding_port(char* packet);
 
     void run_server();
     void establish_TCP_Connection(char* packet, uint32_t destIP, uint16_t destPort,uint16_t num_bytes);
@@ -80,7 +81,7 @@ class Server {
     const char* wan_port_ip = "0.0.0.0";
     uint32_t lan_subnet_mask = 0xFFFFFF00;  // Default subnet mask for /24 subnet
 
-
+    std::map<std::string,int> lan_index_map;
     std::map<std::string, port_pair>  port_map;
     //ACL
     std::map<std::string,std::map<std::string,std::pair<exclusion_range,exclusion_range >>> exclusion_map;

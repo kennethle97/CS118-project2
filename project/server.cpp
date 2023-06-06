@@ -367,6 +367,30 @@ char* Server::change_packet_vals(char* buffer,uint32_t source_ip,uint32_t dest_i
     return packet;
 
 }
+
+//This function replaces the destination port with the actual port forwarding map
+
+uint16_t Server::get_forwarding_port(char* packet){
+
+    ip_port_addr addr_block = get_ip_port_vals(packet);
+
+    // uint32_t source_ip = addr_block.source_ip;
+    uint32_t dest_ip = addr_block.dest_ip;
+    // uint16_t source_port = addr_block.source_port;
+    // uint16_t dest_port = addr_block.dest_port;
+
+    //By default the destination port is set to 0.
+    uint16_t new_dest_port = 0;
+    
+    for(auto it = lan_index_map.begin();it != lan_index_map.end();++it){
+        uint32_t ip_value = convert_ip_to_binary(it->first);
+        if(ip_value == dest_ip){
+            //If the destination ip is any of the ip addresses within the local lan we get the index of the map to get the correct port
+            new_dest_port = it->second;
+        }
+    }
+    return new_dest_port;
+}
 char* Server::process_packet(char* buffer){
     char* packet = buffer;
     // IP_Packet ip_header = parse_IPv4_Header(packet);
@@ -399,15 +423,13 @@ char* Server::process_packet(char* buffer){
                 new_source_port = source_port;
                 new_dest_port = it->second.first;
 
-                if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
-                    //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
-                    return nullptr;
-                }
-                else{
-                    break;
-                }
+                // if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
+                //     //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
+                //     return nullptr;
+                //}
+                break;
             }
-        std::cout << "LAN IP: " << it->first << "\nLAN Port: " << it->second.first << " WAN Port: " << it->second.second << std::endl;
+        // std::cout << "LAN IP: " << it->first << "\nLAN Port: " << it->second.first << " WAN Port: " << it->second.second << std::endl;
         }
     }
 
@@ -429,18 +451,16 @@ char* Server::process_packet(char* buffer){
                 new_source_port = it->second.second;
                 new_dest_port = dest_port;
 
-                if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
-                    //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
-                    return nullptr;
-                }
-                else{
-                    break;
-                }
+                // if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
+                //     //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
+                //     return nullptr;
+                // }
+                break;
             }
         }
     }
     packet = change_packet_vals(packet,new_source_ip,new_dest_ip,new_source_port,new_dest_port);
-    packet = deduct_TTL(packet);
+    //packet = deduct_TTL(packet);
     return packet;
 }
             
@@ -556,11 +576,14 @@ void Server::parse_config(std::string config){
 
     std::string::const_iterator search(line.cbegin());
     //Parse through each of the blocks until \n character by checking if the line contains the specified expression
+    int lan_ip_index = 0;
     while (std::regex_search(search, line.cend(), match_regex, ip_regex)) {
         std::string ip_address = match_regex[1].str();
+        lan_index_map[ip_address] = lan_ip_index;
         if(port_map.find(ip_address) == port_map.end()){
             port_map[ip_address] = std::make_pair(0,0);
         }
+        lan_ip_index++;
         std::getline(ss, line, '\n');
         search = line.cbegin();
     }
@@ -823,7 +846,7 @@ void Server::establish_TCP_Connection(char* packet, uint32_t destIP, uint16_t de
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(destPort);
-    server_addr.sin_addr.s_addr = htonl(destIP);
+    server_addr.sin_addr.s_addr = htonl(local_ip_bin);
 
     if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
         perror("connect");
@@ -856,7 +879,7 @@ void Server::process_client_socket(int client_socket){
         ip_port_addr addr_block = get_ip_port_vals(packet);
 
         uint32_t destination_ip = addr_block.dest_ip;
-        uint16_t destination_port = addr_block.dest_port;
+        uint16_t destination_port = get_forwarding_port(packet);
         establish_TCP_Connection(packet,destination_ip,destination_port,number_bytes);
     }
     //if the packet was a nullptr or the TTL is <= 0 we just close the connection and drop the packet

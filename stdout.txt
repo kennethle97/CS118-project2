@@ -39,7 +39,7 @@ Data Offset and Flags: 0
 Window Size: 0
 Checksum: 44120
 Urgent Pointer: 0
-Options and Data: P P`U
+Options and Data: P P`V
 Version: 4
 Header Length: 7
 Type of Service: 0
@@ -160,3 +160,4 @@ transport check_sum: 44120
 1653992324
 3232235777
 2130706433
+Binding socket to 5152
