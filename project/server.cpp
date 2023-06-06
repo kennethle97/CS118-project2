@@ -544,11 +544,6 @@ char* Server::process_packet(char* buffer){
             return nullptr;
     }
 
-    if(check_excluded_ip_address(source_ip,dest_ip,source_port,dest_port)){
-        //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
-        return nullptr;
-    }
-
     //if the source ip is the wan ip then we are forwarding a messaage from the internet to someone in the lan.
     if(dest_ip == wan_ip_bin){
         bool port_match_found = false;
@@ -642,6 +637,11 @@ char* Server::process_packet(char* buffer){
                 break;
             }
         }
+    }
+
+    if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
+        //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
+        return nullptr;
     }
     packet = change_packet_vals(packet,htonl(new_source_ip),htonl(new_dest_ip),htons(new_source_port),htons(new_dest_port));
     //packet = deduct_TTL(packet);
