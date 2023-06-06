@@ -870,7 +870,7 @@ bool Server::check_excluded_ip_address(uint32_t source_ip,uint32_t dest_ip,uint1
         temp_source_ip = host_ip & temp_source_ip;
         // std::cout << "temp_source_ip " << temp_source_ip <<std::endl;
 
-        if(temp_source_ip == host_ip || entry.first == "0.0.0.0/0"){
+        if(temp_source_ip == host_ip || temp_source_ip == 0){
 
             const auto& inner_map = entry.second;
             for(const auto& inner_entry : inner_map){
@@ -885,7 +885,7 @@ bool Server::check_excluded_ip_address(uint32_t source_ip,uint32_t dest_ip,uint1
                 temp_dest_ip = client_ip & temp_dest_ip;
                 // std::cout << "temp_dest_ip " << temp_dest_ip <<std::endl;
                 // std::cout << "client_ip " << client_ip <<std::endl;
-                if(temp_dest_ip == client_ip || inner_entry.first == "0.0.0.0/0" ){
+                if(temp_dest_ip == client_ip || temp_dest_ip == 0){
 
                     const auto& exclusion_range_pair = inner_entry.second;
                     int host_range_lower = exclusion_range_pair.first.first;
