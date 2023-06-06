@@ -950,15 +950,6 @@ void Server::run_server(){
 
     memset(server_addr.sin_zero, '\0',sizeof(server_addr.sin_zero));
 
-    /*Binding the socket*/
-    printf("Binding socket to %d\n",port_number);
-
-    if(bind(wan_fd, (struct sockaddr*) &server_addr, 
-        sizeof(server_addr)) == -1){
-            perror("Error in binding the socket");
-            exit(1);
-        }
-
     /*Fixes error when port number is in use.*/
     int yes=1;
 
@@ -971,7 +962,18 @@ void Server::run_server(){
         perror("Cannot reuse port");
         exit(1);
     }
+
+    /*Binding the socket*/
+    printf("Binding socket to %d\n",port_number);
+
     
+    if(bind(wan_fd, (struct sockaddr*) &server_addr, 
+        sizeof(server_addr)) == -1){
+            perror("Error in binding the socket");
+            exit(1);
+        }
+
+
     if(listen(wan_fd, 10) == -1){
         perror("Error in listening to socket");
         }
@@ -990,6 +992,7 @@ void Server::run_server(){
                 close(client_sockets[i]);
             }
             close(wan_fd);
+            break;
         }
         //Create set of file descriptors
         FD_ZERO(&read_fds);
@@ -1063,7 +1066,6 @@ void Server::run_server(){
             //}
         }
     }
-    close(wan_fd);
 }
 
 
