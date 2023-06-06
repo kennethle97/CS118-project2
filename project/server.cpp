@@ -854,6 +854,9 @@ bool Server::check_excluded_ip_address(uint32_t source_ip,uint32_t dest_ip,uint1
     uint32_t temp_source_ip = 0;
     uint32_t temp_dest_ip = 0;
 
+    uint32_t masked_source_ip = source_ip & lan_subnet_mask;
+    uint32_t masked_lan_ip = lan_ip_bin & lan_subnet_mask;
+
     // std::cout << "source_ip " << source_ip << std::endl;
     // std::cout << "dest_ip " << dest_ip << std::endl;
     for(const auto& entry : exclusion_map){
@@ -870,7 +873,7 @@ bool Server::check_excluded_ip_address(uint32_t source_ip,uint32_t dest_ip,uint1
         temp_source_ip = host_ip & temp_source_ip;
         // std::cout << "temp_source_ip " << temp_source_ip <<std::endl;
 
-        if(temp_source_ip == host_ip || temp_source_ip == 0){
+        if(temp_source_ip == host_ip || ((temp_source_ip == 0) && (masked_source_ip != masked_lan_ip))){
 
             const auto& inner_map = entry.second;
             for(const auto& inner_entry : inner_map){
@@ -885,7 +888,7 @@ bool Server::check_excluded_ip_address(uint32_t source_ip,uint32_t dest_ip,uint1
                 temp_dest_ip = client_ip & temp_dest_ip;
                 // std::cout << "temp_dest_ip " << temp_dest_ip <<std::endl;
                 // std::cout << "client_ip " << client_ip <<std::endl;
-                if(temp_dest_ip == client_ip || temp_dest_ip == 0){
+                if(temp_dest_ip == client_ip || ((temp_dest_ip == 0)&&(masked_source_ip == masked_lan_ip))){
 
                     const auto& exclusion_range_pair = inner_entry.second;
                     int host_range_lower = exclusion_range_pair.first.first;
