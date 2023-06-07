@@ -135,12 +135,32 @@ python3 grader/packet_generate.py < scenarios/setting1.json
 
 ## TODO
 
-Kenneth Le UID:804953883
+Names: Kenneth Le, Kevin Liu, Tyler Phung
+UIDs (respectively): 804953883, 305621696, 405319920
+Project Report:
 
+High Level Design:
+Our server uses the select function to listen to a set of socket file descriptors and determine which ones are ready for reading, avoiding the need
+for multithreading. 
+A forwarding table is initialized defined as lan_string : socket descriptor.
+When we process a client socket, we accept data from a "packet" into a buffer after applying a processing function to it. 
+Then we call another function that maps that packet to its forwarding socket, and then send the packet to the forwarding socket. 
+The processing function is composed of the following steps:
+-The IPv4 header is parsed and verified (checksum and TTL)
+-A struct of source/dest ip/port is extracted
+-We check if the config is excluded from the ACL list
+Then we handle several cases:
+-source: wan, dest: lan 
+-source: lan, dest: lan (this one is just simple, no changes made to the packet)
+-source: lan, dest: wan
+
+
+The forwarding function is composed of the following steps: 
+-It simply finds the socket descriptor based on the lan_string in the forwarding table previously made. 
+
+
+Problems we ran into:
+
+Online Tutorials/Code tutorials:
+Problems we ran into: /Online Tutorials/Code tutorials:
 For this project to start off the resources I used were from a variety of resources,textbooks,notes,lots of piazza it would be fairly difficult to actually go back and name every single one of them. I ported a good portion of code for the server implementation from project 1. Also I did use the select.c implementation that was shown in the week 7 slides. I tried to implement multithreading but because the format of the array of client_sockets would have to be locked when being modified it seemed as though there would be very little if any performance gain. Likewise the number of connections we are handling in this scenario(up to 10) would likely be very manageable for a select event listener to handle and as such it was able to handle the stress tests. It took many tries and rewrites of certain implementations to get everything working. The only issue was the ACL portion(extra credit).May or may not be able to update and fix.
-
-    ###########################################################
-    ##                                                       ##
-    ## REPLACE CONTENT OF THIS FILE WITH YOUR PROJECT REPORT ##
-    ##                                                       ##
-    ###########################################################
