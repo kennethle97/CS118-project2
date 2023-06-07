@@ -48,47 +48,13 @@ struct Server::ip_port_addr{
 
 
 Server::Server(std::string config) {
+    
     parse_config(config);
-    //char* packet = "\x47\x00\x00\x35\x1e\x84\x40\x00\x40\x06\xcb\x49\xc0\xa8\x01\x02\xac\x10\x00\x0a\x10\x00\x00\x50\x60\x70\x70\x70\x04\xd2\x00\x50\x00\x00\x00\x00\x50\x00\x00\x00\x00\x00\x00\x00\xac\x58\x00\x00\x10\x50\x20\x50\x60";
-    // IP_Packet parsed_header = parse_IPv4_Header(packet);
-    // printIPv4Header(parsed_header);
-    // uint16_t protocol = static_cast<uint16_t>(parsed_header.time_to_live_and_protocol & 0x00FF);
-    // if(protocol == 6){
-    //     TCP_Packet tcp = get_tcp_packet(parsed_header,packet);
-    //     print_tcp_packet(tcp);
-    // }
-    // else if(protocol == 17){
-    //     UDP_Packet udp = get_udp_packet(parsed_header,packet);
-    //     print_udp_packet(udp);
-    // }
-
-    // printIPv4Header(parsed_header);
-    // bool isvalid = valid_checksum(parsed_header,packet);
-    // std::cout<<isvalid<<'\n';
-
 
     wan_ip_bin = convert_ip_to_binary(wan_ip);
-
-
     lan_ip_bin = convert_ip_to_binary(lan_ip);
-
     local_ip_bin = convert_ip_to_binary(local_ip);
-    // std::cout <<"Should return true \n";
-    // std::cout << "Checking excluded address function: " << check_excluded_ip_address(convert_ip_to_binary("192.168.1.200"),convert_ip_to_binary("10.0.0.10"),80,5800)<<std::endl;
-    // std::cout <<"Should return true \n";
-    // std::cout << "Checking excluded address function: " << check_excluded_ip_address(convert_ip_to_binary("10.0.0.10"),convert_ip_to_binary("192.168.1.10"),5800,80)<<std::endl;
 
-    // std::cout <<"Should also return false \n";
-    // std::cout << "Checking excluded address function: " << check_excluded_ip_address(convert_ip_to_binary("10.0.0.10"),convert_ip_to_binary("192.168.1.10"),100,443)<<std::endl;
-
-
-    // std::cout <<"Should return false \n";
-    // std::cout << "Checking excluded address function: " << check_excluded_ip_address(convert_ip_to_binary("192.168.1.200"),convert_ip_to_binary("10.0.0.10"),90,5800)<<std::endl;
-    // std::cout <<"Should also return false \n";
-    // std::cout << "Checking excluded address function: " << check_excluded_ip_address(convert_ip_to_binary("10.0.0.10"),convert_ip_to_binary("192.168.1.10"),100,3000)<<std::endl;
-    // std::cout<<local_ip_bin<<std::endl;
-    // std::cout<<wan_ip_bin<<std::endl;
-    // std::cout<<lan_ip_bin<<std::endl;
     run_server();
 }
 
@@ -285,10 +251,6 @@ std::pair<uint16_t,uint16_t> Server::calc_new_checksum(IP_Packet ip_header, char
         //Cast it to a 16 bit unsigned int after the carry bits are added back in.
         final_checksum = ~final_checksum;
     }
-    //Calculate ip check sum, we can simply call calculate_checksum with the ipv4_header as our input.
-    // std::cout << "ip check_sum: " << ip_checksum << '\n';
-    // std::cout << "transport check_sum: " << final_checksum << '\n';
-    //If either of the checksum fails for tcp/ip layer then we return false.
 
     auto new_checksums = std::make_pair(htons(ip_checksum),htons(final_checksum));
 
@@ -393,17 +355,6 @@ bool Server::valid_checksum(IP_Packet ip_header, char* packet){
         //Cast it to a 16 bit unsigned int after the carry bits are added back in.
         final_checksum = ~final_checksum;
     }
-    //Calculate ip check sum, we can simply call calculate_checksum with the ipv4_header as our input.
-    // std::cout << "ip check_sum: " << ip_checksum << '\n';
-    // std::cout << "transport check_sum: " << final_checksum << '\n';
-    //If either of the checksum fails for tcp/ip layer then we return false.
-    // if(final_checksum != current_checksum){
-    //     std::cout<<"Tcp checksum failed"<<'\n';
-    // }
-    // if(ip_checksum != ip_header.header_checksum){
-    //     std::cout<<"ip checksum failed"<<'\n';
-    // }
-
 
     if((final_checksum != current_checksum) | (ip_checksum != ip_header.header_checksum)){
         return false;
@@ -527,13 +478,6 @@ int Server::get_forwarding_socket(char* packet){
     if(it != forward_table.end()){
         client_socket = it->second;
     }
-    // for(auto it = forward_table.begin();it != forward_table.end();++it){
-    //     uint32_t ip_value = convert_ip_to_binary(it->first);
-    //     if(ip_value == dest_ip){
-    //         //If the destination ip is any of the ip addresses within the local lan we get the index of the map to get the correct port
-    //         client_socket = it->second;
-    //     }
-    // }
     return client_socket;
 
 }
@@ -588,18 +532,16 @@ char* Server::process_packet(char* buffer){
                     }
                     
                     packet = change_packet_vals(packet,htonl(new_source_ip),htonl(new_dest_ip),htons(new_source_port),htons(new_dest_port));
-                    //packet = deduct_TTL(packet);
+                   
                     return packet;
                     }
                 }
             if(port_match_found){
                 break;
             }
-        // std::cout << "LAN IP: " << it->first << "\nLAN Port: " << it->second.first << " WAN Port: " << it->second.second << std::endl;
+    
         }
         if(!port_match_found){
-            //We make a place holder for wan_ip in the map.
-            // port_map[wan_ip].push_back(std::make_pair(0,++dyn_port_number));
             return nullptr;
         }
     }
@@ -617,22 +559,7 @@ char* Server::process_packet(char* buffer){
     }
     //Handle packets being forwarded from the lan to the internet
     else if((source_ip & lan_subnet_mask )== (lan_ip_bin & lan_subnet_mask)){
-        //Check the wan_ip entry to see if any ip address from the lan is trying to connect to a previous port sent to wan ip before.
-        //auto it = port_map.find(wan_ip);
-        // if(it != port_map.end()){
-        //     auto& array_port_pair = it->second;
-        //     int size_vector = (array_port_pair).size(); 
-        //     for(int i = 0; i < size_vector; i++){
-        //         if(dest_port == array_port_pair[i].first){
-        //             auto lan_it = port_map.find(convert_uint32_to_ip(source_ip));
-        //             lan_it->second.push_back(std::make_pair(source_port,array_port_pair[i].second));
-        //             array_port_pair[i].second+=1;
-        //             array_port_pair[i].first+=1;
-        //             // array_port_pair.erase(array_port_pair.begin() + i);
-        //             break;
-        //         }
-        //     }
-        // }
+ 
         auto iter = port_map.find(convert_uint32_to_ip(source_ip));
         if(iter != port_map.end()){
                 auto& array_port_pair = iter->second;
@@ -659,7 +586,7 @@ char* Server::process_packet(char* buffer){
             uint16_t wan_port = wan_port_pair[0].second;
 
             auto& array_port_pair = iter->second;
-            // array_port_pair.push_back(std::make_pair(source_port,wan_port));
+
 
             new_source_ip = wan_ip_bin;
             new_dest_ip = dest_ip;
@@ -1048,10 +975,6 @@ void Server::run_server(){
     // std::cout<<"num_lan_ips: " << num_lan_ips << '\n';
     int map_index = 0;
     
-    // FD_ZERO(&read_fds);
-    // FD_SET(wan_fd,&read_fds);
-    // //std::shared_ptr<Server> self = shared_from_this(); 
-    // max_sd = wan_fd;
     while(!signal_raised){
         //Create set of file descriptors
         FD_ZERO(&read_fds);
@@ -1112,51 +1035,42 @@ void Server::run_server(){
         for(int i = 0; i < MAX_CONNECTIONS; i++){
             sd = client_sockets[i];
             if(sd > 0 && FD_ISSET(sd, &read_fds)){
-                //printf("Processing client %d\n", i);
                 process_client_socket(client_sockets[i]);
-                // std::thread processThread(&Server::process_client_socket,this,std::ref(client_sockets[i]));
-                // processThread.detach();
-                //printf("Client %d: processed successfully\n", i);
             }
-            // if(i < num_lan_ips && ){
-            //     close(client_sockets[i]);
-            //     client_sockets[i] = 0;
-            //}
         }
     }
     for(int i = 0; i < MAX_CONNECTIONS;i++){
                 close(client_sockets[i]);
-                // client_sockets[i] = 0;
             }
             close(wan_fd);
 }
 
 
-void Server::establish_TCP_Connection(char* packet, uint32_t destIP, uint16_t destPort,uint16_t num_bytes) {
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1) {
-        perror("socket");
-        return;
-    }
+// void Server::establish_TCP_Connection(char* packet, uint32_t destIP, uint16_t destPort,uint16_t num_bytes) {
+//     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+//     if (sockfd == -1) {
+//         perror("socket");
+//         return;
+//     }
 
-    struct sockaddr_in server_addr;
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(destPort);
-    server_addr.sin_addr.s_addr = htonl(local_ip_bin);
+//     struct sockaddr_in server_addr;
+//     server_addr.sin_family = AF_INET;
+//     server_addr.sin_port = htons(destPort);
+//     server_addr.sin_addr.s_addr = htonl(local_ip_bin);
 
-    if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
-        perror("connect");
-        close(sockfd);
-        return;
-    }
+//     if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
+//         perror("connect");
+//         close(sockfd);
+//         return;
+//     }
 
-    // Connection established, send the payload packet
-    if (send(sockfd, packet, num_bytes, 0) == -1) {
-        perror("send");
-    }
+//     // Connection established, send the payload packet
+//     if (send(sockfd, packet, num_bytes, 0) == -1) {
+//         perror("send");
+//     }
 
-    close(sockfd);
-}
+//     close(sockfd);
+// }
 
 
 void Server::process_client_socket(int& client_socket){
@@ -1165,64 +1079,13 @@ void Server::process_client_socket(int& client_socket){
     memset(buffer,0,BUFFER_SIZE);
     //need to test to see if the null terminating string affects the number of bytes recieved.
     int number_bytes = recv(client_socket, buffer, BUFFER_SIZE,0);
-
-    // std::cout<<"Number Bytes: " << number_bytes<<std::endl;
-    //buffer[number_bytes] = '\0';
-
-    // if(number_bytes == 0){
-    //     close(client_socket);
-    //     client_socket = 0;
-    // }
-
-    // printf("Client %d: %s\n", client_socket, buffer);
-
     char* packet = buffer;
-    // IP_Packet ip_header = parse_IPv4_Header(packet);
-    // printIPv4Header(ip_header);
-
-    // uint16_t protocol = static_cast<uint16_t>(ip_header.time_to_live_and_protocol & 0x00FF);
-    // if(protocol == 6){
-    //     TCP_Packet tcp = get_tcp_packet(ip_header,packet);
-    //     print_tcp_packet(tcp);
-    // }
-    // else if(protocol == 17){
-    //     UDP_Packet udp = get_udp_packet(ip_header,packet);
-    //     print_udp_packet(udp);
-    // }
-    // bool isvalid = valid_checksum(ip_header,packet);
-    // std::cout<<"valid checksum: "<< isvalid <<'\n';
-
-    // std::cout << ip_header.total_length <<std::endl;
-
     packet = process_packet(packet);
-
-    // std::cout<<"processed packet. client: " << client_socket<<'\n';
-
-    // IP_Packet ip_header1 = parse_IPv4_Header(packet);
-    // printIPv4Header(ip_header1);
-
-    // uint16_t protocol1 = static_cast<uint16_t>(ip_header.time_to_live_and_protocol & 0x00FF);
-    // if(protocol1 == 6){
-    //     TCP_Packet tcp = get_tcp_packet(ip_header,packet);
-    //     print_tcp_packet(tcp);
-    // }
-    // else if(protocol1 == 17){
-    //     UDP_Packet udp = get_udp_packet(ip_header,packet);
-    //     print_udp_packet(udp);
-    // }
-    // bool isvalid1 = valid_checksum(ip_header,packet);
-    // std::cout<<"valid checksum: "<< isvalid1 <<'\n';
 
 
     if(packet != nullptr){
         int forward_socket = get_forwarding_socket(packet);
-        // for(auto it = forward_table.begin();it != forward_table.end();it++){
-        //     // std::cout<<"client ip: " << it->first <<"socket_fd:" << it->second <<'\n';
-        // }
-        // std::cout <<forward_socket<<std::endl;
 
-        // uint32_t destination_ip = addr_block.dest_ip;
-        // uint16_t destination_port = addr_block.dest_port;
 
         if(send(forward_socket, packet, number_bytes, 0) == -1){
             perror("Sending error");

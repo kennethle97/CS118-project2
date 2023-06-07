@@ -3,7 +3,12 @@ Configuration: 192.168.1.1 98.149.235.132
 192.168.1.100
 192.168.1.200
 
+192.168.1.100 8080 8080
+192.168.1.200 9000 443
 
+0.0.0.0/0 0-65535 192.168.1.0/24 80-80
+192.168.1.200/32 80-80 0.0.0.0/0 0-65535
+0.0.0.0/0 0-65535 192.168.1.200/32 443-443
 
 
 Parsing Config
@@ -13,8 +18,17 @@ Binding socket to 5152
 Listening to socket 5152
 Waiting to accept connections from clients.
 size udp_copy16
+size udp_copy16
 Is not excluded:
 Is not excluded:
+size udp_copy16
+size udp_copy16
+Is not excluded:
+Is not excluded:
+size udp_copy16
+Is not excluded:
+Is not excluded:
+size udp_copy16
 size udp_copy16
 Is not excluded:
 Is not excluded:

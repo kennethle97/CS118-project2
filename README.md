@@ -135,6 +135,10 @@ python3 grader/packet_generate.py < scenarios/setting1.json
 
 ## TODO
 
+Kenneth Le UID:804953883
+
+For this project to start off the resources I used were from a variety of resources,textbooks,notes,lots of piazza it would be fairly difficult to actually go back and name every single one of them. I ported a good portion of code for the server implementation from project 1. Also I did use the select.c implementation that was shown in the week 7 slides. I tried to implement multithreading but because the format of the array of client_sockets would have to be locked when being modified it seemed as though there would be very little if any performance gain. Likewise the number of connections we are handling in this scenario(up to 10) would likely be very manageable for a select event listener to handle and as such it was able to handle the stress tests. It took many tries and rewrites of certain implementations to get everything working. The only issue was the ACL portion(extra credit).May or may not be able to update and fix.
+
     ###########################################################
     ##                                                       ##
     ## REPLACE CONTENT OF THIS FILE WITH YOUR PROJECT REPORT ##
