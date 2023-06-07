@@ -82,7 +82,8 @@ Server::Server(std::string config) {
     // std::cout << "Checking excluded address function: " << check_excluded_ip_address(convert_ip_to_binary("10.0.0.10"),convert_ip_to_binary("192.168.1.10"),100,443)<<std::endl;
 
 
-
+    // std::cout <<"Should return false \n";
+    // std::cout << "Checking excluded address function: " << check_excluded_ip_address(convert_ip_to_binary("192.168.1.200"),convert_ip_to_binary("10.0.0.10"),90,5800)<<std::endl;
     // std::cout <<"Should also return false \n";
     // std::cout << "Checking excluded address function: " << check_excluded_ip_address(convert_ip_to_binary("10.0.0.10"),convert_ip_to_binary("192.168.1.10"),100,3000)<<std::endl;
     // std::cout<<local_ip_bin<<std::endl;
@@ -658,7 +659,7 @@ char* Server::process_packet(char* buffer){
             uint16_t wan_port = wan_port_pair[0].second;
 
             auto& array_port_pair = iter->second;
-            array_port_pair.push_back(std::make_pair(source_port,wan_port));
+            // array_port_pair.push_back(std::make_pair(source_port,wan_port));
 
             new_source_ip = wan_ip_bin;
             new_dest_ip = dest_ip;
@@ -674,6 +675,7 @@ char* Server::process_packet(char* buffer){
 
              //double checking if the packet is valid before incrementing.
             if(packet != nullptr){
+                array_port_pair.push_back(std::make_pair(source_port,wan_port));
                 wan_port_pair[0].second+=1;
             }
 
@@ -681,13 +683,6 @@ char* Server::process_packet(char* buffer){
             }
         }
 
-    // if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
-    //     //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
-    //     return nullptr;
-    // }
-    // packet = change_packet_vals(packet,htonl(new_source_ip),htonl(new_dest_ip),htons(new_source_port),htons(new_dest_port));
-    // //packet = deduct_TTL(packet);
-    // If none of these situations apply then we would return a nullptr.
     return nullptr;
 }
             
@@ -902,10 +897,10 @@ bool Server::check_excluded_ip_address(uint32_t source_ip,uint32_t dest_ip,uint1
     uint32_t masked_source_ip = source_ip & lan_subnet_mask;
     uint32_t masked_lan_ip = lan_ip_bin & lan_subnet_mask;
 
-    // std::cout << "source_ip " << source_ip << std::endl;
-    // std::cout << "dest_ip " << dest_ip << std::endl;
+    // std::cout << "source_ip " << convert_uint32_to_ip(source_ip) << std::endl;
+    // std::cout << "dest_ip " << convert_uint32_to_ip(dest_ip) << std::endl;
     for(const auto& entry : exclusion_map){
-        std::cout << "Key: " << entry.first << std::endl;
+        // std::cout << "Key: " << entry.first << std::endl;
         //Takes the a string with the format "192.168.1.0/24" and converts the first part ip to binary. Takes the last part for the mask." 
         host_ip  = convert_ip_to_binary(entry.first.substr(0,entry.first.find_last_of('/')));
         mask_length = std::stoi(entry.first.substr(entry.first.find_last_of('/') + 1));
@@ -928,7 +923,7 @@ bool Server::check_excluded_ip_address(uint32_t source_ip,uint32_t dest_ip,uint1
             // }
             for(const auto& inner_entry : inner_map){
 
-                std::cout << "Key2: " << inner_entry.first << std::endl;
+                // std::cout << "Key2: " << inner_entry.first << std::endl;
                 client_ip  = convert_ip_to_binary(inner_entry.first.substr(0,inner_entry.first.find_last_of('/')));
                 mask_length = std::stoi(inner_entry.first.substr(inner_entry.first.find_last_of('/') + 1));
                 //Get the number of bits to actually shift 
@@ -948,12 +943,12 @@ bool Server::check_excluded_ip_address(uint32_t source_ip,uint32_t dest_ip,uint1
                     int client_range_lower = exclusion_range_pair.second.first;
                     int client_range_upper = exclusion_range_pair.second.second;
 
-                    std::cout << "Host Range Lower: " << host_range_lower << "\n";
-                    std::cout << "Host Range Upper: " << host_range_upper << "\n";
-                    std::cout << "Client Range Lower: " << client_range_lower << "\n";
-                    std::cout << "Client Range Upper: " << client_range_upper << "\n";
-                    std::cout << "Source Port: " << source_port <<std::endl;
-                    std::cout << "Dest Port: " << dest_port <<std::endl;
+                    // std::cout << "Host Range Lower: " << host_range_lower << "\n";
+                    // std::cout << "Host Range Upper: " << host_range_upper << "\n";
+                    // std::cout << "Client Range Lower: " << client_range_lower << "\n";
+                    // std::cout << "Client Range Upper: " << client_range_upper << "\n";
+                    // std::cout << "Source Port: " << source_port <<std::endl;
+                    // std::cout << "Dest Port: " << dest_port <<std::endl;
 
                     // std::cout << "    Excluded Host Port Ranges: " << exclusion_range_pair.first.first
                     // << "-" << exclusion_range_pair.first.second << std::endl;
@@ -963,12 +958,14 @@ bool Server::check_excluded_ip_address(uint32_t source_ip,uint32_t dest_ip,uint1
                     if(host_range_lower <= source_port && source_port <= host_range_upper 
                         && client_range_lower <= dest_port && dest_port <= client_range_upper){
                             //Returns true if the ip address pair and port numbers are excluded from eachother.
+                            // std::cout <<"Is excluded:"<<std::endl;
                             return true;
                         }
                     }
                 }
             }
         }
+    std::cout <<"Is not excluded:"<<std::endl;
     return false;
 }
 
