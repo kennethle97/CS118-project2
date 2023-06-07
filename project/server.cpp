@@ -669,10 +669,14 @@ char* Server::process_packet(char* buffer){
                 //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
                 return nullptr;
             }
-            wan_port_pair[0].second += 1;
 
             packet = change_packet_vals(packet,htonl(new_source_ip),htonl(new_dest_ip),htons(new_source_port),htons(new_dest_port));
-            //packet = deduct_TTL(packet);
+
+             //double checking if the packet is valid before incrementing.
+            if(packet != nullptr){
+                wan_port_pair[0].second+=1;
+            }
+
             return packet;
             }
         }

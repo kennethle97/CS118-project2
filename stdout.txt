@@ -3,7 +3,12 @@ Configuration: 192.168.1.1 98.149.235.132
 192.168.1.100
 192.168.1.200
 
+192.168.1.100 8080 8080
+192.168.1.200 9000 443
 
+0.0.0.0/0 0-65535 192.168.1.0/24 80-80
+192.168.1.200/32 80-80 0.0.0.0/0 0-65535
+0.0.0.0/0 0-65535 192.168.1.200/32 443-443
 
 
 Parsing Config
@@ -13,4 +18,156 @@ Binding socket to 5152
 Listening to socket 5152
 Waiting to accept connections from clients.
 size udp_copy16
+Key: 0.0.0.0/0
+Key2: 192.168.1.0/24
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 80
+Client Range Upper: 80
+Source Port: 5000
+Dest Port: 80
 size udp_copy16
+Key: 0.0.0.0/0
+Key2: 192.168.1.0/24
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 80
+Client Range Upper: 80
+Source Port: 80
+Dest Port: 80
+size udp_copy16
+Key: 0.0.0.0/0
+Key2: 192.168.1.0/24
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 80
+Client Range Upper: 80
+Source Port: 80
+Dest Port: 5000
+Key2: 192.168.1.200/32
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 443
+Client Range Upper: 443
+Source Port: 80
+Dest Port: 5000
+Key: 192.168.1.200/32
+Key: 0.0.0.0/0
+Key2: 192.168.1.0/24
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 80
+Client Range Upper: 80
+Source Port: 80
+Dest Port: 5000
+Key2: 192.168.1.200/32
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 443
+Client Range Upper: 443
+Source Port: 80
+Dest Port: 5000
+Key: 192.168.1.200/32
+size udp_copy16
+Key: 0.0.0.0/0
+Key2: 192.168.1.0/24
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 80
+Client Range Upper: 80
+Source Port: 5000
+Dest Port: 6000
+Key2: 192.168.1.200/32
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 443
+Client Range Upper: 443
+Source Port: 5000
+Dest Port: 6000
+Key: 192.168.1.200/32
+Key: 0.0.0.0/0
+Key2: 192.168.1.0/24
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 80
+Client Range Upper: 80
+Source Port: 5000
+Dest Port: 6000
+Key2: 192.168.1.200/32
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 443
+Client Range Upper: 443
+Source Port: 5000
+Dest Port: 6000
+Key: 192.168.1.200/32
+size udp_copy16
+Key: 0.0.0.0/0
+Key2: 192.168.1.0/24
+Key2: 192.168.1.200/32
+Key: 192.168.1.200/32
+Key: 0.0.0.0/0
+Key2: 192.168.1.0/24
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 80
+Client Range Upper: 80
+Source Port: 5000
+Dest Port: 9000
+Key2: 192.168.1.200/32
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 443
+Client Range Upper: 443
+Source Port: 5000
+Dest Port: 9000
+Key: 192.168.1.200/32
+size udp_copy16
+Key: 0.0.0.0/0
+Key2: 192.168.1.0/24
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 80
+Client Range Upper: 80
+Source Port: 5000
+Dest Port: 443
+Key2: 192.168.1.200/32
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 443
+Client Range Upper: 443
+Source Port: 5000
+Dest Port: 443
+size udp_copy16
+Key: 0.0.0.0/0
+Key2: 192.168.1.0/24
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 80
+Client Range Upper: 80
+Source Port: 5000
+Dest Port: 9000
+Key2: 192.168.1.200/32
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 443
+Client Range Upper: 443
+Source Port: 5000
+Dest Port: 9000
+Key: 192.168.1.200/32
+Key: 0.0.0.0/0
+Key2: 192.168.1.0/24
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 80
+Client Range Upper: 80
+Source Port: 5000
+Dest Port: 9000
+Key2: 192.168.1.200/32
+Host Range Lower: 0
+Host Range Upper: 65535
+Client Range Lower: 443
+Client Range Upper: 443
+Source Port: 5000
+Dest Port: 9000
+Key: 192.168.1.200/32
