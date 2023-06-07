@@ -623,8 +623,9 @@ char* Server::process_packet(char* buffer){
                 if(dest_port == array_port_pair[i].first){
                     auto lan_it = port_map.find(convert_uint32_to_ip(source_ip));
                     lan_it->second.push_back(std::make_pair(source_port,array_port_pair[i].second));
-                    array_port_pair.push_back(std::make_pair(dest_port+1,array_port_pair[i].second+1));
-                    array_port_pair.erase(array_port_pair.begin() + i);
+                    array_port_pair[i].second+=1;
+                    array_port_pair[i].first+=1;
+                    // array_port_pair.erase(array_port_pair.begin() + i);
                     break;
                 }
             }
