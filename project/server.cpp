@@ -566,7 +566,7 @@ char* Server::process_packet(char* buffer){
         bool port_match_found = false;
         for (auto it = port_map.begin(); it != port_map.end(); ++it) {
             //if the dest port is equal to any wan port dictated in the list of port mappings then we can forward the packet.
-            if(it == port_map.find(convert_uint32_to_ip(source_ip))){
+            if(it == port_map.find(wan_ip)){
                 continue;
             }
             auto& array_port_pair = it->second;
@@ -581,10 +581,11 @@ char* Server::process_packet(char* buffer){
 
                     port_match_found = true;
 
-                    // if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
-                    //     //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
-                    //     return nullptr;
-                    // 
+                    if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
+                        //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
+                        return nullptr;
+                    }
+                    
                     packet = change_packet_vals(packet,htonl(new_source_ip),htonl(new_dest_ip),htons(new_source_port),htons(new_dest_port));
                     //packet = deduct_TTL(packet);
                     return packet;
@@ -597,7 +598,7 @@ char* Server::process_packet(char* buffer){
         }
         if(!port_match_found){
             //We make a place holder for wan_ip in the map.
-            port_map[convert_uint32_to_ip(source_ip)].push_back(std::make_pair(source_port,dest_port));
+            // port_map[wan_ip].push_back(std::make_pair(0,++dyn_port_number));
             return nullptr;
         }
     }
@@ -616,24 +617,24 @@ char* Server::process_packet(char* buffer){
     //Handle packets being forwarded from the lan to the internet
     else if((source_ip & lan_subnet_mask )== (lan_ip_bin & lan_subnet_mask)){
         //Check the wan_ip entry to see if any ip address from the lan is trying to connect to a previous port sent to wan ip before.
-        auto it = port_map.find(convert_uint32_to_ip(dest_ip));
-        if(it != port_map.end()){
-            auto& array_port_pair = it->second;
-            int size_vector = (array_port_pair).size(); 
-            for(int i = 0; i < size_vector; i++){
-                if(dest_port == array_port_pair[i].first){
-                    auto lan_it = port_map.find(convert_uint32_to_ip(source_ip));
-                    lan_it->second.push_back(std::make_pair(source_port,array_port_pair[i].second));
-                    array_port_pair[i].second+=1;
-                    array_port_pair[i].first+=1;
-                    // array_port_pair.erase(array_port_pair.begin() + i);
-                    break;
-                }
-            }
-        }
+        //auto it = port_map.find(wan_ip);
+        // if(it != port_map.end()){
+        //     auto& array_port_pair = it->second;
+        //     int size_vector = (array_port_pair).size(); 
+        //     for(int i = 0; i < size_vector; i++){
+        //         if(dest_port == array_port_pair[i].first){
+        //             auto lan_it = port_map.find(convert_uint32_to_ip(source_ip));
+        //             lan_it->second.push_back(std::make_pair(source_port,array_port_pair[i].second));
+        //             array_port_pair[i].second+=1;
+        //             array_port_pair[i].first+=1;
+        //             // array_port_pair.erase(array_port_pair.begin() + i);
+        //             break;
+        //         }
+        //     }
+        // }
         auto iter = port_map.find(convert_uint32_to_ip(source_ip));
         if(iter != port_map.end()){
-            auto& array_port_pair = iter->second;
+                auto& array_port_pair = iter->second;
                 int size = array_port_pair.size();
                 for(int i = 0; i < size;i++){
                     if(source_port == array_port_pair[i].first){
@@ -641,23 +642,45 @@ char* Server::process_packet(char* buffer){
                         new_dest_ip = dest_ip;
                         new_source_port = array_port_pair[i].second;
                         new_dest_port = dest_port;
-                        // if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
-                        //     //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
-                        //     return nullptr;
-                        // }
+                        if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
+                            //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
+                            return nullptr;
+                        }
                         packet = change_packet_vals(packet,htonl(new_source_ip),htonl(new_dest_ip),htons(new_source_port),htons(new_dest_port));
                         //packet = deduct_TTL(packet);
                         return packet;
-                        break;
                         }
                     }
                 }
-            }
+        if(iter != port_map.end()){
+            auto it = port_map.find(wan_ip);
+            auto& wan_port_pair = it->second;
+            uint16_t wan_port = wan_port_pair[0].second;
 
-    if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
-        //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
-        return nullptr;
-    }
+            auto& array_port_pair = iter->second;
+            array_port_pair.push_back(std::make_pair(source_port,wan_port));
+
+            new_source_ip = wan_ip_bin;
+            new_dest_ip = dest_ip;
+            new_source_port = wan_port;
+            new_dest_port = dest_port;
+
+            if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
+                //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
+                return nullptr;
+            }
+            wan_port_pair[0].second += 1;
+
+            packet = change_packet_vals(packet,htonl(new_source_ip),htonl(new_dest_ip),htons(new_source_port),htons(new_dest_port));
+            //packet = deduct_TTL(packet);
+            return packet;
+            }
+        }
+
+    // if(check_excluded_ip_address(new_source_ip,new_dest_ip,new_source_port,new_dest_port)){
+    //     //if for some reason the configuration is excluded from the acl list then we return a nullptr of a char* 
+    //     return nullptr;
+    // }
     // packet = change_packet_vals(packet,htonl(new_source_ip),htonl(new_dest_ip),htons(new_source_port),htons(new_dest_port));
     // //packet = deduct_TTL(packet);
     // If none of these situations apply then we would return a nullptr.
@@ -807,6 +830,8 @@ void Server::parse_config(std::string config){
         std::getline(ss, line, '\n');
         search = line.cbegin();
     }
+    port_map[wan_ip] = std::vector<std::pair<uint16_t,uint16_t>>();
+    port_map[wan_ip].push_back(std::make_pair(0,dyn_port_num));
     std::getline(ss, line, '\n');
     search = line.cbegin();
     while (std::regex_search(search, line.cend(), match_regex, acl_regex)) {

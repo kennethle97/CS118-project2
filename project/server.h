@@ -81,6 +81,7 @@ class Server {
     uint32_t wan_ip_bin;
     uint32_t lan_ip_bin;
 
+    uint16_t dyn_port_num = 49152;
 
     const char* wan_port_ip = "0.0.0.0";
     uint32_t lan_subnet_mask = 0xFFFFFF00;  // Default subnet mask for /24 subnet
